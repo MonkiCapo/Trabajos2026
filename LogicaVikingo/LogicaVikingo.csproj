@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <NoWarn>8</NoWarn>
+    <NoWarn>8618</NoWarn>
   </PropertyGroup>
 
 </Project>

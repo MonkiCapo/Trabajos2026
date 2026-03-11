@@ -10,10 +10,12 @@ namespace LogicaVikingo
         public int IdExpedicion;
         public List<Vikingo> vikingos;
         public List<Lugar> Lugares;
-        
+
         public void TestEntrada(Vikingo vikingo)
         {
-            if ()
+            if()
         }
+        private void SubirVikingo(Vikingo vikingo) {
+        };
     }
 }
