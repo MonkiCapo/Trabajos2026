@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("LogicaVikingo")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bf2b67429c318b988a1107d08ffa922809e8e975")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+93d523c57bf50a11881dffcdb2031c7479b7d7c2")]
 [assembly: System.Reflection.AssemblyProductAttribute("LogicaVikingo")]
 [assembly: System.Reflection.AssemblyTitleAttribute("LogicaVikingo")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
