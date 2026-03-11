@@ -5,11 +5,14 @@ using System.Threading.Tasks;
 
 namespace LogicaVikingo
 {
-    public class Soldado : Vikingo
+    public sealed class Soldado : Vikingo
     {
-        public int Armas;
-        public int VidasCobradas;
+        protected int Armas;
+        protected int VidasCobradas;
 
+        public void AgregarArmas(int armas) => Armas += armas;
+        public void CobrarVida(int vidas) => VidasCobradas += vidas;
+        
         public override (int, int) RevisarProductividad() => ( Armas, VidasCobradas);
     }
 }

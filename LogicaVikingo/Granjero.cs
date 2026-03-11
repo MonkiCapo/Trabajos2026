@@ -5,11 +5,15 @@ using System.Threading.Tasks;
 
 namespace LogicaVikingo
 {
-    public class Granjero : Vikingo
+    public sealed class Granjero : Vikingo
     {
-        public int Hectareas;
-        public int Hijos;
+        protected int Hectareas;
+        protected int Hijos;
 
-        public override (int, int) RevisarProductividad() => ( Hectareas, Hijos);
+        public void AgregarHijos(int hijos) => Hijos += hijos;
+
+        public void AgregarHectareas(int hectareas) => Hectareas += hectareas; 
+
+        public override (int, int) RevisarProductividad() => (Hectareas, Hijos);
     }
 }
