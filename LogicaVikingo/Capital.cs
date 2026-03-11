@@ -7,6 +7,6 @@ namespace LogicaVikingo
 {
     public class Capital : Lugar
     {
-
+        public int Defensores;
     }
 }

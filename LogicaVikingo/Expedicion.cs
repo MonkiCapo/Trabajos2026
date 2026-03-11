@@ -16,7 +16,7 @@ namespace LogicaVikingo
             if( vikingo.GetType() is typeof(Soldado))
             {
                 (int Armas, int VidasCobradas ) = vikingo.RevisarProductividad();
-                
+
                 bool JarlPoseeArmas = vikingo.casta is Jarl && Armas > 0;
 
                 if( Armas <= 0 && VidasCobradas < 20 && JarlPoseeArmas)
@@ -32,6 +32,7 @@ namespace LogicaVikingo
         {
             TestEntrada(vikingo);
             vikingos.Add(vikingo);
+            Console.WriteLine("Vikingo ha subido exitosamente");
         }
     }
 }

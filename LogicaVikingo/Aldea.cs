@@ -7,6 +7,6 @@ namespace LogicaVikingo
 {
     public class Aldea : Lugar
     {
-        
+        public int Crucifijos;
     }
 }

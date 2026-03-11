@@ -7,6 +7,6 @@ namespace LogicaVikingo
 {
     public sealed class Karl : ClaseSocial
     {
-
+        public override ClaseSocial Ascender (this Vikingo usuario) => usuario.casta = new Thrall();
     }
 }

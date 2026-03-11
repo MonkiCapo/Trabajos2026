@@ -7,6 +7,6 @@ namespace LogicaVikingo
 {
     public sealed class Thrall : ClaseSocial
     {
-
+        public override ClaseSocial Ascender() => throw new InvalidOperationException("Los Thrall no pueden ascender");
     }
 }

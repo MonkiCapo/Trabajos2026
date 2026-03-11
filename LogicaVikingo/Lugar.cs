@@ -11,5 +11,6 @@ namespace LogicaVikingo
         public string Nombre = string.Empty;
         public int MonedasOro;
         
+        public abstract int CalcularBotin(){}
     }
 }

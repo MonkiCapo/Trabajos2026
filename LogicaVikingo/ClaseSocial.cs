@@ -8,6 +8,7 @@ namespace LogicaVikingo
     public abstract class ClaseSocial
     {
         public int IDClaseSocial;
-        public string Nombre = "";
+        public string Nombre = string.Empty;
+        public abstract ClaseSocial Ascender();
     }
 }
