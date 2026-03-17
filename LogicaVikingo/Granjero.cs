@@ -7,13 +7,16 @@ namespace LogicaVikingo
 {
     public sealed class Granjero : Vikingo
     {
-        protected int Hectareas;
-        protected int Hijos;
+        public int Hectareas { get; set; }
+        public int Hijos { get; set; }
 
+        public Granjero( int Hectareas, int Hijos, ClaseSocial casta, string Nombre, int IdVikingo) : base ( IdVikingo, Nombre, casta)
+        {
+            this.Hectareas = Hectareas;
+            this.Hijos = Hijos;
+            this.casta = casta;
+        }
         public void AgregarHijos(int hijos) => Hijos += hijos;
-
-        public void AgregarHectareas(int hectareas) => Hectareas += hectareas; 
-
-        public override (int, int) RevisarProductividad() => (Hectareas, Hijos);
+        public void AgregarHectareas(int hectareas) => Hectareas += hectareas;
     }
 }

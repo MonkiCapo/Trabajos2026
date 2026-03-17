@@ -9,30 +9,41 @@ namespace LogicaVikingo
     {
         public int IdExpedicion;
         public List<Vikingo> vikingos;
-        public List<Lugar> Lugares;
+        public List<Lugar> lugares;
 
-        public void TestEntrada(Vikingo vikingo)
+        public Expedicion(int IdExpedicion)
         {
-            if( vikingo.GetType() is typeof(Soldado))
+            this.IdExpedicion = IdExpedicion;
+            this.vikingos = new List<Vikingo>();
+            this.lugares = new List<Lugar>();
+        }
+
+        private void TestEntrada(Vikingo vikingo)
+        {
+            if (vikingo is Soldado soldado)
             {
-                (int Armas, int VidasCobradas ) = vikingo.RevisarProductividad();
+                bool jarlConArmas = vikingo.casta is Jarl && soldado.Armas > 0;
 
-                bool JarlPoseeArmas = vikingo.casta is Jarl && Armas > 0;
-
-                if( Armas <= 0 && VidasCobradas < 20 && JarlPoseeArmas)
-                    throw new InvalidOperationException("El vikingo no es lo suficientemente productivo");
+                if (soldado.Armas <= 0 || soldado.VidasCobradas <= 20 || jarlConArmas)
+                    throw new InvalidOperationException("Soldado no apto");
             }
-            if (vikingo.GetType() is typeof(Granjero))
+            else if (vikingo is Granjero granjero)
             {
-                if (Hectareas > Hijos * 2)
-                    throw new InvalidOperationException("El vikingo no es lo suficientemente productivo");
+                if (granjero.Hectareas < granjero.Hijos * 2)
+                    throw new InvalidOperationException("Granjero no apto");
             }
         }
-        private void SubirVikingo(Vikingo vikingo) 
+
+        public void SubirVikingo(Vikingo vikingo) 
         {
             TestEntrada(vikingo);
             vikingos.Add(vikingo);
             Console.WriteLine("Vikingo ha subido exitosamente");
+        }
+
+        public void InvadirLugar()
+        {
+
         }
     }
 }

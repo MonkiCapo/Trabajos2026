@@ -7,16 +7,20 @@ namespace LogicaVikingo
 {
     public sealed class Jarl : ClaseSocial
     {
-        public override ClaseSocial Ascender(this Vikingo usuario)
+        public Jarl(int id, string nombre) : base(id, nombre){}
+        public override void Ascender(Vikingo usuario)
         {
-            usuario.casta = new Karl();
-            if (usuario.GetType() is typeof(Soldado))
-                usuario.Armas += 10;
+            usuario.casta = new Karl(1, "asd");
 
-            if (usuario.GetType() is typeof(Granjero)){
-                usuario.Hijos += 2;
-                usuario.Hectareas += 2;
+            if (usuario is Soldado soldado)
+                soldado.Armas += 10;
+
+            if (usuario is Granjero granjero)
+            {
+                granjero.Hijos += 2;
+                granjero.Hectareas += 2;
             }
+
         }
     }
 }

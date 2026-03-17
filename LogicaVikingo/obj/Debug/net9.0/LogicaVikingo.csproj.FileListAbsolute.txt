@@ -1,0 +1,12 @@
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.AssemblyInfoInputs.cache
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.AssemblyInfo.cs
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.csproj.CoreCompileInputs.cache
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.sourcelink.json
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\bin\Debug\net9.0\LogicaVikingo.deps.json
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\bin\Debug\net9.0\LogicaVikingo.dll
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\bin\Debug\net9.0\LogicaVikingo.pdb
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.dll
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\refint\LogicaVikingo.dll
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\LogicaVikingo.pdb
+C:\Users\Lab15-PC01\Desktop\VikingoRepaso2026\LogicaVikingo\obj\Debug\net9.0\ref\LogicaVikingo.dll

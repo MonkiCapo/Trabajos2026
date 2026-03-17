@@ -5,14 +5,17 @@ using System.Threading.Tasks;
 
 namespace LogicaVikingo
 {
-    public sealed class Soldado : Vikingo
+   public sealed class Soldado : Vikingo
     {
-        protected int Armas;
-        protected int VidasCobradas;
+        public int Armas { get; set; }
+        public int VidasCobradas { get; set; }
 
+        public Soldado (int Armas, int VidasCobradas, ClaseSocial casta, string Nombre, int IdVikingo) : base (IdVikingo , Nombre, casta)
+        {
+            this.Armas = Armas;
+            this.VidasCobradas = VidasCobradas;
+        }
         public void AgregarArmas(int armas) => Armas += armas;
         public void CobrarVida(int vidas) => VidasCobradas += vidas;
-        
-        public override (int, int) RevisarProductividad() => ( Armas, VidasCobradas);
     }
 }

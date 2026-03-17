@@ -7,8 +7,14 @@ namespace LogicaVikingo
 {
     public abstract class ClaseSocial
     {
-        public int IDClaseSocial;
+        public int IdClaseSocial;
         public string Nombre = string.Empty;
-        public abstract ClaseSocial Ascender();
+
+        public ClaseSocial(int IdClaseSocial, string Nombre)
+        {
+            this.IdClaseSocial = IdClaseSocial;
+            this.Nombre = Nombre;
+        }
+        public abstract void Ascender(Vikingo usuario);
     }
 }

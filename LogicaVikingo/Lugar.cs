@@ -11,6 +11,12 @@ namespace LogicaVikingo
         public string Nombre = string.Empty;
         public int MonedasOro;
         
-        public abstract int CalcularBotin(){}
+        public Lugar (int IdLugar, string Nombre, int MonedasOro)
+        {
+            this.IdLugar = IdLugar;
+            this.Nombre = Nombre;
+            this.MonedasOro = MonedasOro;
+        }
+        public abstract int CalcularBotin();
     }
 }
