@@ -13,6 +13,6 @@ namespace LogicaVikingo
             this.IdClaseSocial = IdClaseSocial;
             this.Nombre = Nombre;
         }
-        public override void Ascender(Vikingo vikingo) => throw new InvalidOperationException("Los Thrall no pueden ascender");
+        public override ClaseSocial Ascender() => throw new InvalidOperationException("Los Thrall no pueden ascender");
     }
 }

@@ -5,17 +5,15 @@ using System.Threading.Tasks;
 
 namespace LogicaVikingo
 {
-    public class AldeaAmurallada : Lugar
+    public class AldeaAmurallada : Aldea
     {
         public int Defensores;
-
-        public AldeaAmurallada (int Defensores, int IdLugar, string Nombre, int MonedasOro) : base (IdLugar, Nombre, MonedasOro)
+        public AldeaAmurallada (int Defensores, int Crucifijos) : base (Crucifijos)
         {
             this.Defensores = Defensores;
-            this.IdLugar = IdLugar;
-            this.Nombre = Nombre;
-            this.MonedasOro = MonedasOro;
         }
-        public override int CalcularBotin() => 1;
+        public override int CalcularBotin() => Defensores;
+
+        
     }
 }

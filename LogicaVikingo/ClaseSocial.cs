@@ -15,6 +15,6 @@ namespace LogicaVikingo
             this.IdClaseSocial = IdClaseSocial;
             this.Nombre = Nombre;
         }
-        public abstract void Ascender(Vikingo usuario);
+        public abstract ClaseSocial Ascender();
     }
 }

@@ -15,11 +15,6 @@ namespace LogicaVikingo
             this.IdClaseSocial = IdClaseSocial;
             this.Nombre = Nombre;
         }
-        public override void Ascender (Vikingo usuario)
-        {
-            usuario.casta = new Thrall(1,"jose");
-
-
-        }
+        public override ClaseSocial Ascender () => new Thrall();
     }
 }

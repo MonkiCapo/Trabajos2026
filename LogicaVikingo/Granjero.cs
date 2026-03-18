@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata.Ecma335;
 using System.Threading.Tasks;
 
 namespace LogicaVikingo
@@ -18,5 +19,22 @@ namespace LogicaVikingo
         }
         public void AgregarHijos(int hijos) => Hijos += hijos;
         public void AgregarHectareas(int hectareas) => Hectareas += hectareas;
+
+        public override void AscenderCasta()
+        {
+            casta = casta.Ascender();
+            if (casta is Karl castaMedia)
+            {
+                Hijos += 2;
+                Hectareas += 2;
+            }
+        }
+        public override void EsProductivo()
+        { 
+            if(Hectareas <= Hijos * 2)
+                throw new InvalidOperationException("El granjero no es productivo.");
+            
+            Console.WriteLine("El granjero es productivo");
+        }
     }
 }

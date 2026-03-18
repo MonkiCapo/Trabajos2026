@@ -18,5 +18,7 @@ namespace LogicaVikingo
             this.MonedasOro = MonedasOro;
         }
         public abstract int CalcularBotin();
+
+        public abstract bool ValeLaPena(int cantidadVikingos);
     }
 }
