@@ -1,0 +1,12 @@
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\bin\Debug\net8.0\AngryBirdsBiblioteca.deps.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\bin\Debug\net8.0\AngryBirdsBiblioteca.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\bin\Debug\net8.0\AngryBirdsBiblioteca.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.AssemblyInfoInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.AssemblyInfo.cs
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.csproj.CoreCompileInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.sourcelink.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\refint\AngryBirdsBiblioteca.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\AngryBirdsBiblioteca.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Birds\AngryBirdsBiblioteca\obj\Debug\net8.0\ref\AngryBirdsBiblioteca.dll
