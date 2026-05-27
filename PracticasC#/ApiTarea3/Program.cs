@@ -29,14 +29,12 @@ app.MapPost("/api/checkout", async (CompraRequest pedido, HttpClient client) =>
             return Results.BadRequest(new { Error = "No hay stock disponible para este producto." });
         }
 
-        // 2. Descontar stock (asegurar y reservar la unidad)
         var descontarResponse = await client.PostAsync($"http://localhost:5002/api/productos/{pedido.ProductoId}/descontar", null);
         if (!descontarResponse.IsSuccessStatusCode)
         {
             return Results.BadRequest(new { Error = "No se pudo reservar el stock del producto." });
         }
 
-        // 3. Debitar dinero de la cuenta del usuario
         var debitarResponse = await client.PostAsJsonAsync($"http://localhost:5001/api/usuarios/{pedido.UsuarioId}/debitar", new { Monto = producto.Precio });
         if (!debitarResponse.IsSuccessStatusCode)
         {
@@ -51,7 +49,7 @@ app.MapPost("/api/checkout", async (CompraRequest pedido, HttpClient client) =>
                 motivoFallo = await debitarResponse.Content.ReadAsStringAsync();
             }
 
-            // Error de inconsistencia: el stock se descontó pero no se cobró
+            // Error del sistema si el saldo no alcanza
             return Results.Json(new
             {
                 Estado = "Inconsistente",
@@ -71,7 +69,7 @@ app.MapPost("/api/checkout", async (CompraRequest pedido, HttpClient client) =>
     {
         return Results.Json(new
         {
-            Estado = "Error 503 (Servicio Unavailable)",
+            Estado = "Error 503 (Servicio no disponible)",
             Motivo = "Uno de los microservicios internos no responde. Intente más tarde.",
             DetalleTecnico = ex.Message
         }, statusCode: 503);
