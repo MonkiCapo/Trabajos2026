@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "c:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj": {}
+    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj": {}
   },
   "projects": {
-    "c:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj": {
+    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "c:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj",
+        "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj",
         "projectName": "AngryBirdsBiblioteca",
-        "projectPath": "c:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj",
+        "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\AngryBirdsBiblioteca.csproj",
         "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
-        "outputPath": "c:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\obj\\",
+        "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Birds\\AngryBirdsBiblioteca\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -37,7 +37,8 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        }
+        },
+        "SdkAnalysisLevel": "10.0.200"
       },
       "frameworks": {
         "net8.0": {
@@ -58,7 +59,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.417/PortableRuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json"
         }
       }
     }

@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="ApiGateway/ApiGateway.csproj" />
+  <Project Path="ApiTarea/ApiTarea.csproj" />
+  <Project Path="ApiTarea2/ApiTarea2.csproj" />
+  <Project Path="ApiTarea3/ApiTarea3.csproj" />
+</Solution>

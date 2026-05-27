@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("AngryBirdsTest")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9d23c5e24afc30e9b99b33de0a1ff22a32c58729")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+bd85762bf2d83257f9a0adaec390c9a2a8dbeb3e")]
 [assembly: System.Reflection.AssemblyProductAttribute("AngryBirdsTest")]
 [assembly: System.Reflection.AssemblyTitleAttribute("AngryBirdsTest")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

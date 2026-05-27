@@ -18,19 +18,14 @@ app.MapGet("/api/usuarios/{id}/saldo", (int id) =>
     return Results.NotFound(new {Mensaje = "Usuario no encontrado"});
 });
 
-app.MapPost("/api/usuarios/{id}/debitar", (int id, decimal CobrarMonto) =>
+app.MapPost("/api/usuarios/{id}/debitar", (int id, DebitarRequest request) =>
 {
     if (usuarios.TryGetValue(id, out var saldo))
     {
-        if (saldo >= CobrarMontoonto)
+        if (saldo >= request.Monto)
         {
-            usuarios[id] -= CobrarMonto;
-
-            return Results.Ok(new
-            {
-                UsuarioId = id,
-                NuevoSaldo = usuarios[id]
-            });
+            usuarios[id] -= request.Monto;
+            return Results.Ok();
         }
 
         return Results.BadRequest(new
@@ -45,4 +40,6 @@ app.MapPost("/api/usuarios/{id}/debitar", (int id, decimal CobrarMonto) =>
     });
 });
 
-app.Run("https://localhost:5001");
+app.Run("http://localhost:5001");
+
+public record DebitarRequest(decimal Monto);
