@@ -59,14 +59,16 @@ classDiagram
         +int Id
         +int Cantidad
         +decimal PrecioUnitario
+        +Pizza Pizza
         +decimal Subtotal()
     }
 
     class Pedido {
         +int Id
         +DateTime FechaCreacion
-        +decimal Total()
         +EstadoPedido Estado
+        +List~ItemPedido~ Items
+        +decimal Total()
     }
 
     class EstadoPedido {
