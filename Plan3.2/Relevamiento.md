@@ -135,7 +135,7 @@ erDiagram
     PEDIDO {
         int id PK
         int cliente_id FK
-        int estado_id FK "Estado actual para consulta rápida"
+        int estado_id FK
         datetime fecha_creacion
         datetime fecha_actualizacion
         decimal total
@@ -146,7 +146,7 @@ erDiagram
         int pedido_id FK
         int pizza_id FK
         int cantidad
-        decimal precio_unitario "Precio histórico del momento de la compra"
+        decimal precio_unitario
     }
 
     HISTORIAL_ESTADO_PEDIDO {
@@ -169,11 +169,9 @@ erDiagram
     ESTADO_PEDIDO ||--o{ HISTORIAL_ESTADO_PEDIDO : "se asigna en"
 ```
 
----
-
 ## 4. Diagrama de Secuencia del Pedido
 
-Este diagrama describe la interacción entre el cliente, el backend y los servicios de cocina y reparto:
+Este diagrama describe la interacción entre el cliente, el backend y los servicios de cocina y reparto, destacando el desacople temporal entre la respuesta HTTP y los eventos asíncronos por socket:
 
 ```mermaid
 sequenceDiagram
@@ -183,39 +181,51 @@ sequenceDiagram
     participant Cocina as Servicio Cocina (Socket)
     participant Reparto as Servicio Reparto (Socket)
 
-    Cliente->>API: POST /api/pedidos (JSON items, clienteId)
+    %% 1. Solicitud inicial HTTP
+    Cliente->>API: POST /api/pedidos (items, clienteId)
     activate API
-    API->>API: Validar datos y crear Pedido (Estado: EsperaConfirmacion)
+    API->>API: Validar y persistir Pedido (Estado: EsperaConfirmacion)
 
-    API->>Cocina: Conectar + Enviar Pedido por Socket
+    %% 2. Intento de conexión por Socket con Cocina
+    API->>Cocina: Conectar TCP + enviar datos del pedido
     activate Cocina
 
-    alt Camino Feliz: Cocina disponible
-        Cocina-->>API: ACK Recepción exitosa
-        API->>API: Cambiar Estado = EnPreparacion
+    alt Flujo normal
+        Cocina-->>API: ACK (recepción exitosa)
+        API->>API: Estado = EnPreparacion
         API-->>Cliente: HTTP 201 Created (pedidoId, Estado: EnPreparacion)
+        deactivate API
 
-        Cocina->>Cocina: Preparar pizza (delay simulado)
-        Cocina-->>API: Enviar por Socket "Notificar preparado"
+        Note over Cliente, API: La respuesta HTTP se envía de inmediato.<br/>Los cambios de estado siguientes ocurren<br/>de forma asíncrona vía eventos socket.
+
+        %% 3. Evento asíncrono: Cocina termina
+        Note over Cocina: Hilo secundario simula cocción
+        Cocina->>Cocina: Preparar pizza (delay)
+        Cocina-->>API: Socket → "PedidoPreparado"
         deactivate Cocina
 
-        API->>Reparto: Conectar + Asignar Pedido por Socket
-        activate Reparto
-        API->>API: Cambiar Estado = EnViaje
-        Reparto->>Reparto: Entregar pizza (delay simulado)
-        Reparto-->>API: Enviar por Socket "Notificar entregado"
-        deactivate Reparto
-        API->>API: Cambiar Estado = Entregado
-    else Camino Alternativo: Falla de red / Cocina caída
-        Cocina--x API: Timeout / Conexión rechazada
-        API->>API: Registrar Log (try/catch) + Cambiar Estado = Cancelado
-        API-->>Cliente: HTTP 503 Service Unavailable (Cocina no disponible)
-    end
-    deactivate API
+        API->>API: Estado = EnViaje
 
-    Note over Cliente, API: En cualquier momento del proceso, el cliente puede consultar el estado.
+        %% 4. Asignación a Reparto
+        API->>Reparto: Conectar TCP + asignar logística
+        activate Reparto
+        Note over Reparto: Hilo secundario simula traslado
+        Reparto->>Reparto: Realizar entrega (delay)
+        Reparto-->>API: Socket → "PedidoEntregado"
+        deactivate Reparto
+        API->>API: Estado = Entregado
+
+    else Flujo de error
+        Cocina--x API: Timeout / Conexión rechazada
+        API->>API: Log error + Estado = Cancelado
+        API-->>Cliente: HTTP 503 (Cocina no disponible)
+        deactivate API
+    end
+
+    %% 5. Consulta de estado (polling HTTP)
+    Note over Cliente, API: El cliente consulta el estado actual vía GET
     Cliente->>API: GET /api/pedidos/{id}
     activate API
-    API-->>Cliente: HTTP 200 OK (Devuelve Estado Actual)
+    API-->>Cliente: HTTP 200 (Estado actual del pedido)
     deactivate API
 ```
