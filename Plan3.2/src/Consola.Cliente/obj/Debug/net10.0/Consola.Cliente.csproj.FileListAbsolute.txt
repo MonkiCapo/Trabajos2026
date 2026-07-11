@@ -1,0 +1,15 @@
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\bin\Debug\net10.0\Consola.Cliente.exe
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\bin\Debug\net10.0\Consola.Cliente.deps.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\bin\Debug\net10.0\Consola.Cliente.runtimeconfig.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\bin\Debug\net10.0\Consola.Cliente.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\bin\Debug\net10.0\Consola.Cliente.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.AssemblyInfoInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.AssemblyInfo.cs
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.csproj.CoreCompileInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.sourcelink.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\refint\Consola.Cliente.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\Consola.Cliente.genruntimeconfig.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cliente\obj\Debug\net10.0\ref\Consola.Cliente.dll

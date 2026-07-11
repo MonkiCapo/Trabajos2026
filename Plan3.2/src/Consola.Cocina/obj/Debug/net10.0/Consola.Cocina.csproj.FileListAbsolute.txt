@@ -1,0 +1,15 @@
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\bin\Debug\net10.0\Consola.Cocina.exe
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\bin\Debug\net10.0\Consola.Cocina.deps.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\bin\Debug\net10.0\Consola.Cocina.runtimeconfig.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\bin\Debug\net10.0\Consola.Cocina.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\bin\Debug\net10.0\Consola.Cocina.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.AssemblyInfoInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.AssemblyInfo.cs
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.csproj.CoreCompileInputs.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.sourcelink.json
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\refint\Consola.Cocina.dll
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.pdb
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\Consola.Cocina.genruntimeconfig.cache
+C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Consola.Cocina\obj\Debug\net10.0\ref\Consola.Cocina.dll
