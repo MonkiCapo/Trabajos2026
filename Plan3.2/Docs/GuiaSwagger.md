@@ -19,7 +19,7 @@ Antes de probar con Swagger, necesitas tener corriendo los procesos del sistema 
 
 > **Importante:** Sin la Cocina corriendo, los pedidos seran **cancelados automaticamente** porque no se recibe ACK en 5 segundos.
 
-> **MySQL:** Asegurate de que MySQL este corriendo en `localhost:3306` con usuario `root` sin contrasena, y que la base `5to_Pizzeria` exista.
+> **MySQL:** Asegurate de que MySQL este corriendo en `localhost:3306` con usuario `5to_agbd` y contrasena `Trigg3rs!`, y que la base `5to_Pizzeria` exista.
 
 ---
 
@@ -96,7 +96,7 @@ Pizza Napolitana     - $1300
 
 ```json
 {
-  "clienteId": 1,
+  "clienteEmail": "juan.perez@email.com",
   "items": [
     { "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 },
     { "pizzaNombre": "Pizza Pepperoni", "cantidad": 1 }
@@ -109,7 +109,7 @@ Pizza Napolitana     - $1300
 
    - **201 Created** = Pedido aceptado, cocina lo recibio. Guarda el `pedidoId`.
    - **503 Service Unavailable** = La cocina no esta corriendo o no respondio a tiempo.
-   - **400 Bad Request** = Datos invalidos.
+   - **400 Bad Request** = Datos invalidos. Verifica que el email del cliente exista.
 
 ### Paso 4: Consultar el Estado del Pedido
 
@@ -270,6 +270,6 @@ Si ya existe un cliente con ese email:
 2. POST /api/clientes                  -> Registrar cliente (nombre, email, telefono, direccion)
 3. GET  /api/clientes/{id}             -> Verificar datos del cliente por ID
 4. GET  /api/clientes/email/{email}    -> Verificar datos del cliente por email
-5. POST /api/pedidos                   -> Crear pedido (clienteId + items con pizzaNombre)
+5. POST /api/pedidos                   -> Crear pedido (clienteEmail + items con pizzaNombre)
 6. GET  /api/pedidos/{id}              -> Consultar estado del pedido
 ```

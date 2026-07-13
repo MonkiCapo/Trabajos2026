@@ -7,8 +7,10 @@ public class PedidoRequestValidator : AbstractValidator<PedidoRequest>
 {
     public PedidoRequestValidator()
     {
-        RuleFor(x => x.ClienteId)
-            .GreaterThan(0).WithMessage("El campo clienteId debe ser mayor a 0.");
+        RuleFor(x => x.ClienteEmail)
+            .NotEmpty().WithMessage("El email del cliente es obligatorio.")
+            .MaximumLength(150).WithMessage("El email no puede superar 150 caracteres.")
+            .EmailAddress().WithMessage("El formato del email no es valido.");
 
         RuleFor(x => x.Items)
             .NotNull().WithMessage("La lista de items es obligatoria.")

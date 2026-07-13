@@ -32,7 +32,7 @@ public class PedidoService : IPedidoService
     public PedidoService(IConfiguration configuration, ISocketServer socketServer, ILogger<PedidoService> logger)
     {
         _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=root;Password=;";
+            ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;";
         _socketServer = socketServer;
         _logger = logger;
     }

@@ -56,7 +56,7 @@ POST /api/pedidos
 Content-Type: application/json
 
 {
-  "clienteId": 1,
+  "clienteEmail": "juan.perez@email.com",
   "items": [
     { "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 },
     { "pizzaNombre": "Pizza Pepperoni", "cantidad": 1 }
@@ -146,6 +146,6 @@ El cliente no bloquea esperando la pizza; consulta el estado mediante GET perió
 
 | Método | Ruta | Propósito | Request Body | Response |
 |--------|------|-----------|--------------|----------|
-| `POST` | `/api/pedidos` | Crear pedido | `{ clienteId, items[] }` | `201` + `{ pedidoId, estado, total }` |
+| `POST` | `/api/pedidos` | Crear pedido | `{ clienteEmail, items[] }` | `201` + `{ pedidoId, estado, total }` |
 | `GET` | `/api/pedidos/{id}` | Consultar estado | — | `200` + `{ pedidoId, estado, ... }` |
 | `POST` | `/api/clientes` | Registrar cliente | `{ nombre, email, telefono, direccion }` | `201` + `{ clienteId }` |

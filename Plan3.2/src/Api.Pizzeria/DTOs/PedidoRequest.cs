@@ -2,6 +2,6 @@ namespace Api.Pizzeria.DTOs;
 
 public class PedidoRequest
 {
-    public int ClienteId { get; set; }
+    public string ClienteEmail { get; set; } = string.Empty;
     public List<ItemRequest> Items { get; set; } = new();
 }

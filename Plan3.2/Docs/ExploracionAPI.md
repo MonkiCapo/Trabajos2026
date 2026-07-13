@@ -12,7 +12,7 @@
 | `POST` | `/api/clientes` | Registrar un nuevo cliente (con email) | `201 Created`, `400 Bad Request` |
 | `GET` | `/api/clientes/{id}` | Obtener datos de un cliente por ID | `200 OK`, `404 Not Found` |
 | `GET` | `/api/clientes/email/{email}` | Obtener datos de un cliente por email | `200 OK`, `404 Not Found` |
-| `POST` | `/api/pedidos` | Crear un nuevo pedido (por nombre de pizza) | `201 Created`, `400 Bad Request`, `503 Service Unavailable` |
+| `POST` | `/api/pedidos` | Crear un nuevo pedido (por email del cliente y nombre de pizza) | `201 Created`, `400 Bad Request`, `503 Service Unavailable` |
 | `GET` | `/api/pedidos/{id}` | Consultar estado de un pedido | `200 OK`, `404 Not Found` |
 | `GET` | `/api/pizzas` | Listar catalogo de pizzas disponibles | `200 OK` |
 
@@ -85,7 +85,7 @@ curl http://localhost:5183/api/pizzas
 curl -X POST http://localhost:5183/api/pedidos \
   -H "Content-Type: application/json" \
   -d '{
-    "clienteId": 1,
+    "clienteEmail": "juan.perez@email.com",
     "items": [
       { "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 },
       { "pizzaNombre": "Pizza Pepperoni", "cantidad": 1 }
@@ -172,7 +172,7 @@ curl -X POST http://localhost:5183/api/pedidos \
    | Crear Cliente | POST | `{{base_url}}/api/clientes` | `{ "nombre": "...", "email": "...", ... }` |
    | Buscar por Email | GET | `{{base_url}}/api/clientes/email/{email}` | - |
    | Listar Pizzas | GET | `{{base_url}}/api/pizzas` | - |
-   | Crear Pedido | POST | `{{base_url}}/api/pedidos` | `{ "clienteId": 1, "items": [{ "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 }] }` |
+    | Crear Pedido | POST | `{{base_url}}/api/pedidos` | `{ "clienteEmail": "juan@email.com", "items": [{ "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 }] }` |
    | Consultar Pedido | GET | `{{base_url}}/api/pedidos/42` | - |
 
 ---
@@ -205,7 +205,7 @@ curl -X POST http://localhost:5183/api/pedidos \
 
 | Campo | Regla |
 |-------|-------|
-| `clienteId` | Obligatorio, mayor a 0 |
+| `clienteEmail` | Obligatorio, formato email valido |
 | `items` | Obligatorio, al menos 1 item |
 | `items[].pizzaNombre` | Obligatorio, max 100 caracteres |
 | `items[].cantidad` | Mayor a 0, maximo 100 |
@@ -219,7 +219,7 @@ El proyecto usa **MySQL** (via MySqlConnector). La conexion esta configurada en 
 ```json
 {
   "ConnectionStrings": {
-    "DefaultConnection": "Server=localhost;Port=3306;Database=5to_Pizzeria;User=root;Password=;"
+    "DefaultConnection": "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;"
   }
 }
 ```

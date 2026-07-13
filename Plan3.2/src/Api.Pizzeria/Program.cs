@@ -32,7 +32,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 // Configure MySQL Connection String
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=root;Password=;";
+    ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;";
 
 // Initialize Database using script.sql
 DbInitializer.Initialize(connectionString);
@@ -145,20 +145,32 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
         return Results.ValidationProblem(validation.ToDictionary());
     }
 
-    // Build the Pedido entity
-    var order = new Pedido
+    // Resolve email to client ID
+    Pedido? order = null;
+    using (var conn = new MySqlConnection(connectionString))
     {
-        ClienteId = request.ClienteId,
-        Items = request.Items.Select(i => new ItemPedido
+        var clienteId = await conn.QuerySingleOrDefaultAsync<int?>(
+            "SELECT id FROM CLIENTE WHERE email = @Email", new { Email = request.ClienteEmail });
+
+        if (clienteId == null)
         {
-            PizzaNombre = i.PizzaNombre,
-            Cantidad = i.Cantidad
-        }).ToList()
-    };
+            return Results.BadRequest(new { error = $"No se encontro un cliente con el email '{request.ClienteEmail}'." });
+        }
+
+        order = new Pedido
+        {
+            ClienteId = clienteId.Value,
+            Items = request.Items.Select(i => new ItemPedido
+            {
+                PizzaNombre = i.PizzaNombre,
+                Cantidad = i.Cantidad
+            }).ToList()
+        };
+    }
 
     try
     {
-        var createdOrder = await pedidoService.CrearPedidoAsync(order);
+        var createdOrder = await pedidoService.CrearPedidoAsync(order!);
 
         return Results.Created($"/api/pedidos/{createdOrder.Id}", new
         {
