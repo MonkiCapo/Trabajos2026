@@ -43,6 +43,7 @@ classDiagram
     class Cliente {
         +int Id
         +string Nombre
+        +string Email
         +string Telefono
         +string Direccion
     }
@@ -104,6 +105,7 @@ erDiagram
     CLIENTE {
         int id PK
         string nombre
+        string email UK
         string telefono
         string direccion
     }

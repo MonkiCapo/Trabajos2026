@@ -4,7 +4,7 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Data.Sqlite;
+using MySqlConnector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Dapper;
@@ -31,12 +31,13 @@ public class PedidoService : IPedidoService
 
     public PedidoService(IConfiguration configuration, ISocketServer socketServer, ILogger<PedidoService> logger)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection") ?? "Data Source=pizzeria.db";
+        _connectionString = configuration.GetConnectionString("DefaultConnection")
+            ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=root;Password=;";
         _socketServer = socketServer;
         _logger = logger;
     }
 
-    private IDbConnection CreateConnection() => new SqliteConnection(_connectionString);
+    private IDbConnection CreateConnection() => new MySqlConnection(_connectionString);
 
     public async Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido)
     {
@@ -54,21 +55,22 @@ public class PedidoService : IPedidoService
                 throw new ArgumentException($"El cliente con ID {nuevoPedido.ClienteId} no existe.");
             }
 
-            // 2. Fetch pizza prices and calculate total
+            // 2. Fetch pizza prices by name and calculate total
             decimal calculatedTotal = 0;
-            var pizzaPriceCache = new Dictionary<int, (string Nombre, decimal Precio)>();
 
             foreach (var item in nuevoPedido.Items)
             {
-                var pizzaInfo = await connection.QuerySingleOrDefaultAsync<(string Nombre, decimal Precio)>(
-                    "SELECT nombre, precio FROM PIZZA WHERE id = @Id", new { Id = item.PizzaId }, transaction);
-                
+                var pizzaInfo = await connection.QuerySingleOrDefaultAsync<(int Id, string Nombre, decimal Precio)>(
+                    "SELECT id, nombre, precio FROM PIZZA WHERE nombre = @Nombre",
+                    new { Nombre = item.PizzaNombre }, transaction);
+
                 if (pizzaInfo.Nombre == null)
                 {
-                    throw new ArgumentException($"La pizza con ID {item.PizzaId} no existe en el catálogo.");
+                    throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no existe en el catalogo.");
                 }
 
-                pizzaPriceCache[item.PizzaId] = pizzaInfo;
+                item.PizzaId = pizzaInfo.Id;
+                item.PizzaNombre = pizzaInfo.Nombre;
                 item.PrecioUnitario = pizzaInfo.Precio;
                 calculatedTotal += pizzaInfo.Precio * item.Cantidad;
             }
@@ -82,7 +84,7 @@ public class PedidoService : IPedidoService
             const string insertPedidoSql = @"
                 INSERT INTO PEDIDO (cliente_id, estado_id, fecha_creacion, fecha_actualizacion, total)
                 VALUES (@ClienteId, @EstadoId, @FechaCreacion, @FechaActualizacion, @Total);
-                SELECT last_insert_rowid();";
+                SELECT LAST_INSERT_ID();";
 
             var id = await connection.ExecuteScalarAsync<int>(insertPedidoSql, new
             {
@@ -103,7 +105,6 @@ public class PedidoService : IPedidoService
             foreach (var item in nuevoPedido.Items)
             {
                 item.PedidoId = nuevoPedido.Id;
-                item.PizzaNombre = pizzaPriceCache[item.PizzaId].Nombre;
                 await connection.ExecuteAsync(insertItemSql, new
                 {
                     PedidoId = item.PedidoId,
@@ -159,7 +160,6 @@ public class PedidoService : IPedidoService
         catch (Exception ex) when (ex is SocketException || ex is CocinaNoDisponibleException || ex is OperationCanceledException)
         {
             _logger.LogError(ex, "[PEDIDOSERVICE] Cocina is not available. Connection failed for pedido {Id}. Cancelling order.", nuevoPedido.Id);
-            // Mutate state to Cancelled
             await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.Cancelado, $"Fallo de red: {ex.Message}");
             throw new CocinaNoDisponibleException("Servicio de cocina no disponible en este momento.", nuevoPedido.Id);
         }

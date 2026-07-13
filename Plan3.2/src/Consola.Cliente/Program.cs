@@ -9,7 +9,7 @@ namespace Consola.Cliente;
 
 class Program
 {
-    private static readonly HttpClient _httpClient = new() { BaseAddress = new Uri("http://localhost:5000") };
+    private static readonly HttpClient _httpClient = new() { BaseAddress = new Uri("http://localhost:5183") };
 
     static async Task Main(string[] args)
     {
@@ -27,6 +27,7 @@ class Program
             var clientData = new
             {
                 nombre = "Juan Pérez",
+                email = "juan.perez@email.com",
                 telefono = "11-1234-5678",
                 direccion = "Av. Siempreviva 742"
             };
@@ -68,8 +69,8 @@ class Program
                 clienteId = clienteId,
                 items = new[]
                 {
-                    new { pizzaId = 3, cantidad = 2 }, // Pizza Muzzarella
-                    new { pizzaId = 1, cantidad = 1 }  // Pizza Pepperoni
+                    new { pizzaNombre = "Pizza Muzzarella", cantidad = 2 },
+                    new { pizzaNombre = "Pizza Pepperoni", cantidad = 1 }
                 }
             };
 
@@ -156,7 +157,7 @@ class Program
         {
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"\n[ERROR CRITICO] Ocurrió una excepción: {ex.Message}");
-            Console.WriteLine("Asegúrese de que el servidor Minimal API esté ejecutándose en http://localhost:5000");
+            Console.WriteLine("Asegúrese de que el servidor Minimal API esté ejecutándose en http://localhost:5183");
             Console.ResetColor();
         }
 

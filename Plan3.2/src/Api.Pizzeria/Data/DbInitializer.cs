@@ -1,6 +1,6 @@
 using System;
 using System.IO;
-using Microsoft.Data.Sqlite;
+using MySqlConnector;
 using Dapper;
 
 namespace Api.Pizzeria.Data;
@@ -9,12 +9,9 @@ public static class DbInitializer
 {
     public static void Initialize(string connectionString)
     {
-        // SQLite will automatically create the file if it doesn't exist.
-        // Let's execute the SQL script to create tables and seed data.
-        using var connection = new SqliteConnection(connectionString);
+        using var connection = new MySqlConnection(connectionString);
         connection.Open();
 
-        // Find the script.sql file
         string scriptPath = FindScriptPath();
         if (string.IsNullOrEmpty(scriptPath))
         {
@@ -25,8 +22,8 @@ public static class DbInitializer
         Console.WriteLine($"[DB INFO] Initializing database using script at: {scriptPath}");
         string sql = File.ReadAllText(scriptPath);
 
-        // SQLite Dapper call
-        connection.Execute(sql);
+        using var command = new MySqlCommand(sql, connection);
+        command.ExecuteNonQuery();
         Console.WriteLine("[DB INFO] Database initialized successfully.");
     }
 

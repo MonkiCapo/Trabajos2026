@@ -1,21 +1,22 @@
-# Exploración Práctica de APIs REST
+# Exploracion Practica de APIs REST
 
 **Proyecto:** PizzeriaAPI
-**Curso:** Computación — ET12 DE1
+**Curso:** Computacion - ET12 DE1
 
 ---
 
 ## 1. Endpoints del Sistema
 
-La tabla siguiente documenta los endpoints REST expuestos por el backend de PizzeriaAPI:
-
-| Método | Ruta | Descripción | Códigos de respuesta |
+| Metodo | Ruta | Descripcion | Codigos de respuesta |
 |--------|------|-------------|---------------------|
-| `POST` | `/api/clientes` | Registrar un nuevo cliente | `201 Created`, `400 Bad Request` |
-| `GET` | `/api/clientes/{id}` | Obtener datos de un cliente | `200 OK`, `404 Not Found` |
-| `POST` | `/api/pedidos` | Crear un nuevo pedido | `201 Created`, `400 Bad Request`, `503 Service Unavailable` |
+| `POST` | `/api/clientes` | Registrar un nuevo cliente (con email) | `201 Created`, `400 Bad Request` |
+| `GET` | `/api/clientes/{id}` | Obtener datos de un cliente por ID | `200 OK`, `404 Not Found` |
+| `GET` | `/api/clientes/email/{email}` | Obtener datos de un cliente por email | `200 OK`, `404 Not Found` |
+| `POST` | `/api/pedidos` | Crear un nuevo pedido (por nombre de pizza) | `201 Created`, `400 Bad Request`, `503 Service Unavailable` |
 | `GET` | `/api/pedidos/{id}` | Consultar estado de un pedido | `200 OK`, `404 Not Found` |
-| `GET` | `/api/pizzas` | Listar catálogo de pizzas disponibles | `200 OK` |
+| `GET` | `/api/pizzas` | Listar catalogo de pizzas disponibles | `200 OK` |
+
+> **Swagger UI:** Disponible en `http://localhost:5183/swagger` cuando la API esta corriendo.
 
 ---
 
@@ -24,10 +25,11 @@ La tabla siguiente documenta los endpoints REST expuestos por el backend de Pizz
 ### 2.1 Registrar un Cliente
 
 ```bash
-curl -X POST http://localhost:5000/api/clientes \
+curl -X POST http://localhost:5183/api/clientes \
   -H "Content-Type: application/json" \
   -d '{
-    "nombre": "Juan Pérez",
+    "nombre": "Juan Perez",
+    "email": "juan.perez@email.com",
     "telefono": "11-1234-5678",
     "direccion": "Av. Siempreviva 742"
   }'
@@ -37,49 +39,83 @@ curl -X POST http://localhost:5000/api/clientes \
 ```json
 {
   "id": 1,
-  "nombre": "Juan Pérez",
+  "nombre": "Juan Perez",
+  "email": "juan.perez@email.com",
   "telefono": "11-1234-5678",
   "direccion": "Av. Siempreviva 742"
 }
 ```
 
-### 2.2 Realizar un Pedido
+### 2.2 Buscar Cliente por Email
 
 ```bash
-curl -X POST http://localhost:5000/api/pedidos \
+curl http://localhost:5183/api/clientes/email/juan.perez@email.com
+```
+
+**Response (200):**
+```json
+{
+  "id": 1,
+  "nombre": "Juan Perez",
+  "email": "juan.perez@email.com",
+  "telefono": "11-1234-5678",
+  "direccion": "Av. Siempreviva 742"
+}
+```
+
+### 2.3 Consultar Catalogo de Pizzas
+
+```bash
+curl http://localhost:5183/api/pizzas
+```
+
+**Response (200):**
+```json
+[
+  { "id": 1, "nombre": "Pizza Pepperoni", "tamanio": "Grande", "precio": 1500.00, "descripcion": "..." },
+  { "id": 2, "nombre": "Pizza Jamón y Queso", "tamanio": "Grande", "precio": 1400.00, "descripcion": "..." },
+  { "id": 3, "nombre": "Pizza Muzzarella", "tamanio": "Grande", "precio": 1200.00, "descripcion": "..." },
+  { "id": 4, "nombre": "Pizza Napolitana", "tamanio": "Grande", "precio": 1300.00, "descripcion": "..." }
+]
+```
+
+### 2.4 Realizar un Pedido (por nombre de pizza)
+
+```bash
+curl -X POST http://localhost:5183/api/pedidos \
   -H "Content-Type: application/json" \
   -d '{
     "clienteId": 1,
     "items": [
-      { "pizzaId": 3, "cantidad": 2 },
-      { "pizzaId": 5, "cantidad": 1 }
+      { "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 },
+      { "pizzaNombre": "Pizza Pepperoni", "cantidad": 1 }
     ]
   }'
 ```
 
-**Response (201) — Flujo normal:**
+**Response (201) - Flujo normal:**
 ```json
 {
   "pedidoId": 42,
   "estado": "EnPreparacion",
-  "total": 3200.00,
-  "fechaCreacion": "2026-07-08T20:30:00Z"
+  "total": 3900.00,
+  "fechaCreacion": "2026-07-13T20:30:00Z"
 }
 ```
 
-**Response (503) — Cocina no disponible:**
+**Response (503) - Cocina no disponible:**
 ```json
 {
   "error": "Servicio de cocina no disponible en este momento",
-  "pedidoId": null,
+  "pedidoId": 42,
   "codigo": "COCINA_NO_DISPONIBLE"
 }
 ```
 
-### 2.3 Consultar Estado del Pedido
+### 2.5 Consultar Estado del Pedido
 
 ```bash
-curl http://localhost:5000/api/pedidos/42
+curl http://localhost:5183/api/pedidos/42
 ```
 
 **Response (200):**
@@ -89,33 +125,36 @@ curl http://localhost:5000/api/pedidos/42
   "estado": "EnViaje",
   "cliente": {
     "id": 1,
-    "nombre": "Juan Pérez"
+    "nombre": "Juan Perez",
+    "email": "juan.perez@email.com"
   },
   "items": [
-    { "pizza": "Muzzarella", "cantidad": 2, "precioUnitario": 1200.00 },
-    { "pizza": "Napolitana", "cantidad": 1, "precioUnitario": 800.00 }
+    { "pizza": "Pizza Muzzarella", "cantidad": 2, "precioUnitario": 1200.00 },
+    { "pizza": "Pizza Pepperoni", "cantidad": 1, "precioUnitario": 1500.00 }
   ],
-  "total": 3200.00,
-  "fechaCreacion": "2026-07-08T20:30:00Z",
-  "ultimaActualizacion": "2026-07-08T20:35:00Z"
+  "total": 3900.00,
+  "fechaCreacion": "2026-07-13T20:30:00Z",
+  "ultimaActualizacion": "2026-07-13T20:35:00Z"
 }
 ```
 
-### 2.4 Datos Inválidos (400 Bad Request)
+### 2.6 Datos Invalidos (400 Bad Request - FluentValidation)
 
 ```bash
-curl -X POST http://localhost:5000/api/pedidos \
+curl -X POST http://localhost:5183/api/pedidos \
   -H "Content-Type: application/json" \
-  -d '{ "clienteId": null }'
+  -d '{ "clienteId": 0, "items": [] }'
 ```
 
 **Response (400):**
 ```json
 {
-  "error": "Datos inválidos",
-  "detalles": {
-    "clienteId": ["El campo clienteId es obligatorio"],
-    "items": ["Debe contener al menos un item"]
+  "type": "https://tools.ietf.org/html/rfc9110#section-15.5.1",
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "ClienteId": ["El campo clienteId debe ser mayor a 0."],
+    "Items": ["Debe contener al menos un item."]
   }
 }
 ```
@@ -124,40 +163,75 @@ curl -X POST http://localhost:5000/api/pedidos \
 
 ## 3. Uso con Postman
 
-Para probar los endpoints en Postman:
-
-1. **Crear Colección:** `PizzeriaAPI`
-2. **Variables de entorno:** `{{base_url}} = http://localhost:5000`
+1. **Crear Coleccion:** `PizzeriaAPI`
+2. **Variables de entorno:** `{{base_url}} = http://localhost:5183`
 3. **Ejemplos de requests:**
 
-   | Request | Método | URL | Body (raw JSON) |
+   | Request | Metodo | URL | Body (raw JSON) |
    |---------|--------|-----|-----------------|
-   | Crear Cliente | POST | `{{base_url}}/api/clientes` | `{ "nombre": "Juan", ... }` |
-   | Crear Pedido | POST | `{{base_url}}/api/pedidos` | `{ "clienteId": 1, "items": [...] }` |
-   | Consultar Pedido | GET | `{{base_url}}/api/pedidos/42` | — |
-   | Listar Pizzas | GET | `{{base_url}}/api/pizzas` | — |
-
-4. **Tests sugeridos:** Validar que el código de estado sea 201 o 200 según corresponda, y que el body contenga los campos esperados.
+   | Crear Cliente | POST | `{{base_url}}/api/clientes` | `{ "nombre": "...", "email": "...", ... }` |
+   | Buscar por Email | GET | `{{base_url}}/api/clientes/email/{email}` | - |
+   | Listar Pizzas | GET | `{{base_url}}/api/pizzas` | - |
+   | Crear Pedido | POST | `{{base_url}}/api/pedidos` | `{ "clienteId": 1, "items": [{ "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 }] }` |
+   | Consultar Pedido | GET | `{{base_url}}/api/pedidos/42` | - |
 
 ---
 
-## 4. Manejo de Errores — Convenciones REST
+## 4. Manejo de Errores - Convenciones REST
 
-| Código | Significado | Cuándo ocurre |
+| Codigo | Significado | Cuando ocurre |
 |--------|-------------|---------------|
-| `200 OK` | La operación se completó exitosamente. | GET /pedidos/{id} |
-| `201 Created` | El recurso se creó correctamente. | POST /pedidos, POST /clientes |
-| `400 Bad Request` | El payload enviado no es válido. | Validación de esquema falla. |
+| `200 OK` | La operacion se completo exitosamente. | GET /pedidos/{id} |
+| `201 Created` | El recurso se creo correctamente. | POST /pedidos, POST /clientes |
+| `400 Bad Request` | El payload enviado no es valido (FluentValidation). | Validacion de esquema falla. |
 | `404 Not Found` | El recurso solicitado no existe. | GET /pedidos/9999 |
-| `503 Service Unavailable` | Un servicio interno no está disponible. | Timeout con Cocina. |
-| `500 Internal Server Error` | Error inesperado del servidor. | Excepción no controlada. |
+| `503 Service Unavailable` | Un servicio interno no esta disponible. | Timeout con Cocina. |
+| `500 Internal Server Error` | Error inesperado del servidor. | Excepcion no controlada. |
 
 ---
 
-## 5. Conclusión
+## 5. Validaciones (FluentValidation)
 
-La API sigue las convenciones REST estándar:
+### ClienteRequest (POST /api/clientes)
+
+| Campo | Regla |
+|-------|-------|
+| `nombre` | Obligatorio, max 100 caracteres |
+| `email` | Obligatorio, max 150 caracteres, formato email valido, unico en la BD |
+| `telefono` | Obligatorio, max 20 caracteres, solo numeros/espacios/guiones/+ |
+| `direccion` | Obligatoria, max 200 caracteres |
+
+### PedidoRequest (POST /api/pedidos)
+
+| Campo | Regla |
+|-------|-------|
+| `clienteId` | Obligatorio, mayor a 0 |
+| `items` | Obligatorio, al menos 1 item |
+| `items[].pizzaNombre` | Obligatorio, max 100 caracteres |
+| `items[].cantidad` | Mayor a 0, maximo 100 |
+
+---
+
+## 6. Base de Datos
+
+El proyecto usa **MySQL** (via MySqlConnector). La conexion esta configurada en `appsettings.json`:
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=localhost;Port=3306;Database=5to_Pizzeria;User=root;Password=;"
+  }
+}
+```
+
+---
+
+## 7. Conclusion
+
+La API sigue las convenciones REST estandar:
 - **Sustantivos en plural** para recursos (`/clientes`, `/pedidos`, `/pizzas`).
-- **Códigos HTTP semánticos** para indicar el resultado.
+- **Codigos HTTP semanticos** para indicar el resultado.
 - **JSON** como formato de intercambio.
-- **Errores con estructura predecible** (campo `error` + `detalles` opcional).
+- **Errores con estructura predecible** (campo `errors` con diccionario de FluentValidation).
+- **Pedidos por nombre de pizza** en vez de ID para mayor legibilidad.
+- **Cliente con email unico** para identificacion unica.

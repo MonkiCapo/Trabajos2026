@@ -15,7 +15,7 @@ graph TB
 
     subgraph "Capa Backend (Servidor Central)"
         API["Minimal API (ASP.NET Core)"]
-        DB["Base de Datos (SQLite / SQL Server)"]
+        DB["Base de Datos (MySQL)"]
         API --- DB
     end
 
@@ -58,8 +58,8 @@ Content-Type: application/json
 {
   "clienteId": 1,
   "items": [
-    { "pizzaId": 3, "cantidad": 2 },
-    { "pizzaId": 5, "cantidad": 1 }
+    { "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 },
+    { "pizzaNombre": "Pizza Pepperoni", "cantidad": 1 }
   ]
 }
 
@@ -148,4 +148,4 @@ El cliente no bloquea esperando la pizza; consulta el estado mediante GET perió
 |--------|------|-----------|--------------|----------|
 | `POST` | `/api/pedidos` | Crear pedido | `{ clienteId, items[] }` | `201` + `{ pedidoId, estado, total }` |
 | `GET` | `/api/pedidos/{id}` | Consultar estado | — | `200` + `{ pedidoId, estado, ... }` |
-| `POST` | `/api/clientes` | Registrar cliente | `{ nombre, telefono, direccion }` | `201` + `{ clienteId }` |
+| `POST` | `/api/clientes` | Registrar cliente | `{ nombre, email, telefono, direccion }` | `201` + `{ clienteId }` |
