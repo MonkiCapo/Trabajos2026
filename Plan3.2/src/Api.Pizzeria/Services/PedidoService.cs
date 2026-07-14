@@ -4,14 +4,12 @@ using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using MySqlConnector;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using Dapper;
 using System.Net.Sockets;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
+using Core.Pizzeria.Servicios.IRepositorios;
 using Api.Pizzeria.Sockets;
 
 namespace Api.Pizzeria.Services;
@@ -27,32 +25,40 @@ public class CocinaNoDisponibleException : Exception
 
 public class PedidoService : IPedidoService
 {
-    private readonly string _connectionString;
+    private readonly IClienteRepositorio _clienteRepo;
+    private readonly IPedidoRepositorio _pedidoRepo;
+    private readonly IPizzaRepositorio _pizzaRepo;
+    private readonly IAdo _ado;
     private readonly ISocketServer _socketServer;
     private readonly ILogger<PedidoService> _logger;
 
-    public PedidoService(IConfiguration configuration, ISocketServer socketServer, ILogger<PedidoService> logger)
+    public PedidoService(
+        IClienteRepositorio clienteRepo,
+        IPedidoRepositorio pedidoRepo,
+        IPizzaRepositorio pizzaRepo,
+        IAdo ado,
+        ISocketServer socketServer,
+        ILogger<PedidoService> logger)
     {
-        _connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;";
+        _clienteRepo = clienteRepo;
+        _pedidoRepo = pedidoRepo;
+        _pizzaRepo = pizzaRepo;
+        _ado = ado;
         _socketServer = socketServer;
         _logger = logger;
     }
 
-    private IDbConnection CreateConnection() => new MySqlConnection(_connectionString);
-
     public async Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido)
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        using var transaction = connection.BeginTransaction();
+        using var conexion = _ado.GetDbConnection();
+        conexion.Open();
+        using var transaction = conexion.BeginTransaction();
 
         try
         {
             // 1. Verificar que el cliente existe
-            var clientExists = await connection.ExecuteScalarAsync<int>(
-                "SELECT COUNT(1) FROM CLIENTE WHERE id = @Id", new { Id = nuevoPedido.ClienteId }, transaction);
-            if (clientExists == 0)
+            var cliente = await _clienteRepo.ObtenerClientePorIdAsync(nuevoPedido.ClienteId);
+            if (cliente == null)
             {
                 throw new ArgumentException($"El cliente con ID {nuevoPedido.ClienteId} no existe.");
             }
@@ -62,11 +68,9 @@ public class PedidoService : IPedidoService
 
             foreach (var item in nuevoPedido.Items)
             {
-                var pizzaInfo = await connection.QuerySingleOrDefaultAsync<(int Id, string Nombre, decimal Precio)>(
-                    "SELECT id, nombre, precio FROM PIZZA WHERE nombre = @Nombre",
-                    new { Nombre = item.PizzaNombre }, transaction);
+                var pizzaInfo = await _pizzaRepo.ObtenerPizzaPorNombreAsync(item.PizzaNombre);
 
-                if (pizzaInfo.Nombre == null)
+                if (pizzaInfo == null)
                 {
                     throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no existe en el catalogo.");
                 }
@@ -83,51 +87,15 @@ public class PedidoService : IPedidoService
             nuevoPedido.FechaActualizacion = DateTime.UtcNow;
 
             // 3. Insertar PEDIDO
-            const string insertPedidoSql = @"
-                INSERT INTO PEDIDO (cliente_id, estado_id, fecha_creacion, fecha_actualizacion, total)
-                VALUES (@ClienteId, @EstadoId, @FechaCreacion, @FechaActualizacion, @Total);
-                SELECT LAST_INSERT_ID();";
-
-            var id = await connection.ExecuteScalarAsync<int>(insertPedidoSql, new
-            {
-                ClienteId = nuevoPedido.ClienteId,
-                EstadoId = (int)nuevoPedido.Estado,
-                FechaCreacion = nuevoPedido.FechaCreacion.ToString("yyyy-MM-dd HH:mm:ss"),
-                FechaActualizacion = nuevoPedido.FechaActualizacion.ToString("yyyy-MM-dd HH:mm:ss"),
-                Total = nuevoPedido.Total
-            }, transaction);
-
-            nuevoPedido.Id = id;
+            var pedidoId = await _pedidoRepo.CrearPedidoAsync(nuevoPedido, conexion, transaction);
+            nuevoPedido.Id = pedidoId;
 
             // 4. Insertar ITEMS
-            const string insertItemSql = @"
-                INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, cantidad, precio_unitario)
-                VALUES (@PedidoId, @PizzaId, @Cantidad, @PrecioUnitario);";
-
-            foreach (var item in nuevoPedido.Items)
-            {
-                item.PedidoId = nuevoPedido.Id;
-                await connection.ExecuteAsync(insertItemSql, new
-                {
-                    PedidoId = item.PedidoId,
-                    PizzaId = item.PizzaId,
-                    Cantidad = item.Cantidad,
-                    PrecioUnitario = item.PrecioUnitario
-                }, transaction);
-            }
+            await _pedidoRepo.CrearItemsPedidoAsync(nuevoPedido.Items, pedidoId, conexion, transaction);
 
             // 5. Insertar HISTORIAL
-            const string insertHistorialSql = @"
-                INSERT INTO HISTORIAL_ESTADO_PEDIDO (pedido_id, estado_id, fecha_cambio, observacion)
-                VALUES (@PedidoId, @EstadoId, @FechaCambio, @Observacion);";
-
-            await connection.ExecuteAsync(insertHistorialSql, new
-            {
-                PedidoId = nuevoPedido.Id,
-                EstadoId = (int)nuevoPedido.Estado,
-                FechaCambio = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                Observacion = "Creación de pedido. Esperando confirmación de cocina."
-            }, transaction);
+            await _pedidoRepo.CrearHistorialAsync(pedidoId, EstadoPedido.EsperaConfirmacion, 
+                "Creación de pedido. Esperando confirmación de cocina.", conexion, transaction);
 
             transaction.Commit();
         }
@@ -171,39 +139,19 @@ public class PedidoService : IPedidoService
 
     public async Task ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, string observacion)
     {
-        using var connection = CreateConnection();
-        connection.Open();
-        using var transaction = connection.BeginTransaction();
+        using var conexion = _ado.GetDbConnection();
+        conexion.Open();
+        using var transaction = conexion.BeginTransaction();
 
         try
         {
             _logger.LogInformation("[PEDIDOSERVICE] Transicionando pedido {Id} a {Estado} - {Obs}", pedidoId, nuevoEstado, observacion);
 
             // Actualizar pedido
-            const string updateSql = @"
-                UPDATE PEDIDO 
-                SET estado_id = @EstadoId, fecha_actualizacion = @FechaActualizacion 
-                WHERE id = @Id";
-
-            await connection.ExecuteAsync(updateSql, new
-            {
-                EstadoId = (int)nuevoEstado,
-                FechaActualizacion = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                Id = pedidoId
-            }, transaction);
+            await _pedidoRepo.ActualizarEstadoAsync(pedidoId, nuevoEstado, conexion, transaction);
 
             // Insertar historial
-            const string insertHistorialSql = @"
-                INSERT INTO HISTORIAL_ESTADO_PEDIDO (pedido_id, estado_id, fecha_cambio, observacion)
-                VALUES (@PedidoId, @EstadoId, @FechaCambio, @Observacion);";
-
-            await connection.ExecuteAsync(insertHistorialSql, new
-            {
-                PedidoId = pedidoId,
-                EstadoId = (int)nuevoEstado,
-                FechaCambio = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                Observacion = observacion
-            }, transaction);
+            await _pedidoRepo.CrearHistorialAsync(pedidoId, nuevoEstado, observacion, conexion, transaction);
 
             transaction.Commit();
         }
@@ -221,15 +169,13 @@ public class PedidoService : IPedidoService
             {
                 try
                 {
-                    var pedido = await GetPedidoByIdAsync(pedidoId);
+                    var pedido = await _pedidoRepo.ObtenerPedidoPorIdAsync(pedidoId);
                     if (pedido != null)
                     {
-                        using var conn = CreateConnection();
-                        var address = await conn.QuerySingleOrDefaultAsync<string>(
-                            "SELECT direccion FROM CLIENTE WHERE id = @Id", new { Id = pedido.ClienteId });
+                        var cliente = await _clienteRepo.ObtenerClientePorIdAsync(pedido.ClienteId);
                         
                         using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        bool assigned = await _socketServer.EnviarPedidoARepartoAsync(pedido, address ?? "Sin dirección", cts.Token);
+                        bool assigned = await _socketServer.EnviarPedidoARepartoAsync(pedido, cliente?.Direccion ?? "Sin dirección", cts.Token);
                         if (!assigned)
                         {
                             _logger.LogWarning("[PEDIDOSERVICE] Reparto no disponible o timeout para la asignación del pedido {Id}.", pedidoId);
@@ -246,27 +192,6 @@ public class PedidoService : IPedidoService
 
     public async Task<Pedido?> GetPedidoByIdAsync(int id)
     {
-        using var connection = CreateConnection();
-        connection.Open();
-
-        const string sqlPedido = @"
-            SELECT id, cliente_id AS ClienteId, estado_id AS Estado, fecha_creacion AS FechaCreacion, fecha_actualizacion AS FechaActualizacion, total
-            FROM PEDIDO
-            WHERE id = @Id";
-
-        var pedido = await connection.QuerySingleOrDefaultAsync<Pedido>(sqlPedido, new { Id = id });
-        if (pedido == null) return null;
-
-        const string sqlItems = @"
-            SELECT ip.id, ip.pedido_id AS PedidoId, ip.pizza_id AS PizzaId, ip.cantidad, ip.precio_unitario AS PrecioUnitario,
-                   pz.nombre AS PizzaNombre
-            FROM ITEM_PEDIDO ip
-            JOIN PIZZA pz ON ip.pizza_id = pz.id
-            WHERE ip.pedido_id = @PedidoId";
-
-        var items = await connection.QueryAsync<ItemPedido>(sqlItems, new { PedidoId = id });
-        pedido.Items = items.ToList();
-
-        return pedido;
+        return await _pedidoRepo.ObtenerPedidoPorIdAsync(id);
     }
 }

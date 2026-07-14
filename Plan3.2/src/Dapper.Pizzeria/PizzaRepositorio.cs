@@ -9,15 +9,15 @@ public class PizzaRepositorio : DapperRepo, IPizzaRepositorio
 {
     public PizzaRepositorio(IAdo _ado) : base(_ado) { }
 
-    public IEnumerable<Pizza> ObtenerPizzas()
+    public async Task<IEnumerable<Pizza>> ObtenerPizzasAsync()
     {
         var sql = "SELECT id, nombre, tamanio, precio, descripcion FROM PIZZA;";
-        return Conexion.Query<Pizza>(sql);
+        return await Conexion.QueryAsync<Pizza>(sql);
     }
 
-    public Pizza ObtenerPizzaPorNombre(string nombre)
+    public async Task<Pizza?> ObtenerPizzaPorNombreAsync(string nombre)
     {
         var sql = "SELECT id, nombre, tamanio, precio, descripcion FROM PIZZA WHERE nombre = @Nombre;";
-        return Conexion.QueryFirstOrDefault<Pizza>(sql, new { Nombre = nombre });
+        return await Conexion.QueryFirstOrDefaultAsync<Pizza>(sql, new { Nombre = nombre });
     }
 }

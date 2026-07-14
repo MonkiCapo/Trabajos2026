@@ -5,18 +5,17 @@ using System.Text.Json.Serialization;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
-using MySqlConnector;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Dapper;
 using Api.Pizzeria.Data;
 using Api.Pizzeria.Sockets;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
+using Core.Pizzeria.Servicios.IRepositorios;
 using Dapper.Pizzeria;
 using Api.Pizzeria.Services;
 
@@ -33,9 +32,17 @@ builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-// Configurar cadena de conexión de MySQL
+// Registrar cadena de conexión de MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;";
+
+// Registrar Ado (conexión a base de datos)
+builder.Services.AddSingleton<IAdo>(new Ado(connectionString));
+
+// Registrar repositorios
+builder.Services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
+builder.Services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
+builder.Services.AddScoped<IPizzaRepositorio, PizzaRepositorio>();
 
 // Inicializar base de datos usando script.sql
 DbInitializer.Initialize(connectionString);
@@ -71,7 +78,7 @@ app.UseSwaggerUI(c =>
 // Endpoints
 
 // 1. POST /api/clientes (Registrar cliente)
-app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, ILogger<Program> logger) =>
+app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, IClienteRepositorio clienteRepo, ILogger<Program> logger) =>
 {
     var validation = await validator.ValidateAsync(clienteRequest);
     if (!validation.IsValid)
@@ -81,12 +88,6 @@ app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<Cl
 
     try
     {
-        using var conn = new MySqlConnection(connectionString);
-        const string sql = @"
-            INSERT INTO CLIENTE (nombre, email, telefono, direccion) 
-            VALUES (@Nombre, @Email, @Telefono, @Direccion);
-            SELECT LAST_INSERT_ID();";
-
         var cliente = new Cliente
         {
             Nombre = clienteRequest.Nombre,
@@ -95,14 +96,10 @@ app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<Cl
             Direccion = clienteRequest.Direccion
         };
 
-        var id = await conn.ExecuteScalarAsync<int>(sql, cliente);
+        var id = await clienteRepo.AgregarClienteAsync(cliente);
         cliente.Id = id;
         logger.LogInformation("[API] Nuevo cliente registrado: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
         return Results.Created($"/api/clientes/{cliente.Id}", cliente);
-    }
-    catch (MySqlException ex) when (ex.Number == 1062)
-    {
-        return Results.BadRequest(new { error = "Ya existe un cliente con ese email." });
     }
     catch (Exception ex)
     {
@@ -112,35 +109,28 @@ app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<Cl
 });
 
 // GET /api/clientes/{id} (Obtener cliente por ID)
-app.MapGet("/api/clientes/{id}", async (int id) =>
+app.MapGet("/api/clientes/{id}", async (int id, IClienteRepositorio clienteRepo) =>
 {
-    using var conn = new MySqlConnection(connectionString);
-    var cliente = await conn.QuerySingleOrDefaultAsync<Cliente>(
-        "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id", new { Id = id });
-
+    var cliente = await clienteRepo.ObtenerClientePorIdAsync(id);
     return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
 });
 
 // GET /api/clientes/email/{email} (Obtener cliente por email)
-app.MapGet("/api/clientes/email/{email}", async (string email) =>
+app.MapGet("/api/clientes/email/{email}", async (string email, IClienteRepositorio clienteRepo) =>
 {
-    using var conn = new MySqlConnection(connectionString);
-    var cliente = await conn.QuerySingleOrDefaultAsync<Cliente>(
-        "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE email = @Email", new { Email = email });
-
+    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(email);
     return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
 });
 
 // 2. GET /api/pizzas (Catálogo de Pizzas)
-app.MapGet("/api/pizzas", async () =>
+app.MapGet("/api/pizzas", async (IPizzaRepositorio pizzaRepo) =>
 {
-    using var conn = new MySqlConnection(connectionString);
-    var pizzas = await conn.QueryAsync<Pizza>("SELECT id, nombre, tamanio, precio, descripcion FROM PIZZA");
+    var pizzas = await pizzaRepo.ObtenerPizzasAsync();
     return Results.Ok(pizzas);
 });
 
 // 3. POST /api/pedidos (Crear pedido - CU-03)
-app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoService, IValidator<PedidoRequest> validator, ILogger<Program> logger) =>
+app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoService, IClienteRepositorio clienteRepo, IValidator<PedidoRequest> validator, ILogger<Program> logger) =>
 {
     var validation = await validator.ValidateAsync(request);
     if (!validation.IsValid)
@@ -149,31 +139,25 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
     }
 
     // Resolver email a ID de cliente
-    Pedido? order = null;
-    using (var conn = new MySqlConnection(connectionString))
+    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(request.ClienteEmail);
+    if (cliente == null)
     {
-        var clienteId = await conn.QuerySingleOrDefaultAsync<int?>(
-            "SELECT id FROM CLIENTE WHERE email = @Email", new { Email = request.ClienteEmail });
-
-        if (clienteId == null)
-        {
-            return Results.BadRequest(new { error = $"No se encontro un cliente con el email '{request.ClienteEmail}'." });
-        }
-
-        order = new Pedido
-        {
-            ClienteId = clienteId.Value,
-            Items = request.Items.Select(i => new ItemPedido
-            {
-                PizzaNombre = i.PizzaNombre,
-                Cantidad = i.Cantidad
-            }).ToList()
-        };
+        return Results.BadRequest(new { error = $"No se encontro un cliente con el email '{request.ClienteEmail}'." });
     }
+
+    var order = new Pedido
+    {
+        ClienteId = cliente.Id,
+        Items = request.Items.Select(i => new ItemPedido
+        {
+            PizzaNombre = i.PizzaNombre,
+            Cantidad = i.Cantidad
+        }).ToList()
+    };
 
     try
     {
-        var createdOrder = await pedidoService.CrearPedidoAsync(order!);
+        var createdOrder = await pedidoService.CrearPedidoAsync(order);
 
         return Results.Created($"/api/pedidos/{createdOrder.Id}", new
         {
@@ -205,7 +189,7 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
 });
 
 // 4. GET /api/pedidos/{id} (Consultar pedido - CU-02)
-app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ILogger<Program> logger) =>
+app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, IClienteRepositorio clienteRepo, ILogger<Program> logger) =>
 {
     try
     {
@@ -216,9 +200,7 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ILo
         }
 
         // Obtener información del cliente
-        using var conn = new MySqlConnection(connectionString);
-        var cliente = await conn.QuerySingleOrDefaultAsync<Cliente>(
-            "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id", new { Id = order.ClienteId });
+        var cliente = await clienteRepo.ObtenerClientePorIdAsync(order.ClienteId);
 
         return Results.Ok(new
         {

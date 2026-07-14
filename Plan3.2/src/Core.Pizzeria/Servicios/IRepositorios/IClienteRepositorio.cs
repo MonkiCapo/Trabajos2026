@@ -8,11 +8,11 @@ namespace Core.Pizzeria.Servicios.IRepositorios;
 
 public interface IClienteRepositorio
 {
-    IEnumerable<Cliente> ObtenerClientes();
-    Cliente ObtenerClientePorId(int id);
-    Cliente ObtenerClientePorEmail(string email);
-    Cliente AgregarCliente(Cliente cliente);
-    bool ActualizarCliente(Cliente cliente, int id);
-    bool EliminarCliente(int id);
-    bool ExisteEmailDeCliente(string emailExistente);
+    Task<IEnumerable<Cliente>> ObtenerClientesAsync();
+    Task<Cliente?> ObtenerClientePorIdAsync(int id);
+    Task<Cliente?> ObtenerClientePorEmailAsync(string email);
+    Task<int> AgregarClienteAsync(Cliente cliente);
+    Task<bool> ActualizarClienteAsync(Cliente cliente, int id);
+    Task<bool> EliminarClienteAsync(int id);
+    Task<bool> ExisteEmailDeClienteAsync(string emailExistente);
 }

@@ -9,24 +9,23 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
 {
     public ClienteRepositorio(IAdo _ado) : base(_ado) { }
 
-    public Cliente AgregarCliente(Cliente cliente)
+    public async Task<int> AgregarClienteAsync(Cliente cliente)
     {
         var sql = @"INSERT INTO CLIENTE (nombre, email, telefono, direccion) 
                     VALUES (@Nombre, @Email, @Telefono, @Direccion);
                     SELECT LAST_INSERT_ID();";
 
-        var id = Conexion.ExecuteScalar<int>(sql, new
+        var id = await Conexion.ExecuteScalarAsync<int>(sql, new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion
         });
-        cliente.Id = id;
-        return cliente;
+        return id;
     }
 
-    public bool ActualizarCliente(Cliente cliente, int id)
+    public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id)
     {
         var sql = @"UPDATE CLIENTE
                     SET Nombre = @Nombre,
@@ -34,7 +33,7 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
                         Telefono = @Telefono,
                         Direccion = @Direccion
                     WHERE id = @Id;";
-        var rowsAffected = Conexion.Execute(sql, new
+        var rowsAffected = await Conexion.ExecuteAsync(sql, new
         {
             cliente.Nombre,
             cliente.Email,
@@ -45,35 +44,35 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
         return rowsAffected > 0;
     }
 
-    public bool EliminarCliente(int id)
+    public async Task<bool> EliminarClienteAsync(int id)
     {
         var sql = "DELETE FROM CLIENTE WHERE id = @Id;";
-        var rowsAffected = Conexion.Execute(sql, new { Id = id });
+        var rowsAffected = await Conexion.ExecuteAsync(sql, new { Id = id });
         return rowsAffected > 0;
     }
 
-    public IEnumerable<Cliente> ObtenerClientes()
+    public async Task<IEnumerable<Cliente>> ObtenerClientesAsync()
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE;";
-        return Conexion.Query<Cliente>(sql);
+        return await Conexion.QueryAsync<Cliente>(sql);
     }
 
-    public Cliente ObtenerClientePorId(int id)
+    public async Task<Cliente?> ObtenerClientePorIdAsync(int id)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id;";
-        return Conexion.QueryFirstOrDefault<Cliente>(sql, new { Id = id });
+        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
     }
 
-    public Cliente ObtenerClientePorEmail(string email)
+    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE email = @Email;";
-        return Conexion.QueryFirstOrDefault<Cliente>(sql, new { Email = email });
+        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email });
     }
 
-    public bool ExisteEmailDeCliente(string emailExistente)
+    public async Task<bool> ExisteEmailDeClienteAsync(string emailExistente)
     {
         var sql = "SELECT COUNT(1) FROM CLIENTE WHERE email = @Email";
-        var count = Conexion.ExecuteScalar<int>(sql, new { Email = emailExistente });
+        var count = await Conexion.ExecuteScalarAsync<int>(sql, new { Email = emailExistente });
         return count > 0;
     }
 }

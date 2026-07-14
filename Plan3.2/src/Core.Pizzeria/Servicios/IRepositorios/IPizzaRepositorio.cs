@@ -8,6 +8,6 @@ namespace Core.Pizzeria.Servicios.IRepositorios;
 
 public interface IPizzaRepositorio
 {
-    IEnumerable<Pizza> ObtenerPizzas();
-    Pizza ObtenerPizzaPorNombre(string nombre);
+    Task<IEnumerable<Pizza>> ObtenerPizzasAsync();
+    Task<Pizza?> ObtenerPizzaPorNombreAsync(string nombre);
 }
