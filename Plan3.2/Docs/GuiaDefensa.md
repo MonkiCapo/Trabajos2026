@@ -167,15 +167,3 @@ Implementamos un handshake simple:
 | `GuiaSwagger.md` | Cómo usar Swagger UI |
 
 ---
-
-## 5. Checklist Pre-Defensa
-
-- [ ] MySQL corriendo en puerto 3306
-- [ ] Consola.Cocina compilada y lista
-- [ ] Consola.Reparto compilada y lista
-- [ ] Api.Pizzeria compilada y lista
-- [ ] Consola.Cliente compilada y lista
-- [ ] Orden de inicio correcto: MySQL → Cocina → Reparto → API → Cliente
-- [ ] Tener abierta la documentación en caso de necesitar referenciar
-- [ ] Practicar la demo completa al menos 2 veces
-- [ ] Preparar respuestas a las preguntas frecuentes

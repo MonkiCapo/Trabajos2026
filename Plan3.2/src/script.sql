@@ -123,3 +123,7 @@ INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 4);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 7);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 8);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 9);
+
+
+
+SELECT * FROM 

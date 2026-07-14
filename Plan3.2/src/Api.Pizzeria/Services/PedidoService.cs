@@ -90,8 +90,8 @@ public class PedidoService : IPedidoService
             {
                 ClienteId = nuevoPedido.ClienteId,
                 EstadoId = (int)nuevoPedido.Estado,
-                FechaCreacion = nuevoPedido.FechaCreacion.ToString("o"),
-                FechaActualizacion = nuevoPedido.FechaActualizacion.ToString("o"),
+                FechaCreacion = nuevoPedido.FechaCreacion.ToString("yyyy-MM-dd HH:mm:ss"),
+                FechaActualizacion = nuevoPedido.FechaActualizacion.ToString("yyyy-MM-dd HH:mm:ss"),
                 Total = nuevoPedido.Total
             }, transaction);
 
@@ -123,7 +123,7 @@ public class PedidoService : IPedidoService
             {
                 PedidoId = nuevoPedido.Id,
                 EstadoId = (int)nuevoPedido.Estado,
-                FechaCambio = DateTime.UtcNow.ToString("o"),
+                FechaCambio = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
                 Observacion = "Creación de pedido. Esperando confirmación de cocina."
             }, transaction);
 
@@ -186,7 +186,7 @@ public class PedidoService : IPedidoService
             await connection.ExecuteAsync(updateSql, new
             {
                 EstadoId = (int)nuevoEstado,
-                FechaActualizacion = DateTime.UtcNow.ToString("o"),
+                FechaActualizacion = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
                 Id = pedidoId
             }, transaction);
 
@@ -199,7 +199,7 @@ public class PedidoService : IPedidoService
             {
                 PedidoId = pedidoId,
                 EstadoId = (int)nuevoEstado,
-                FechaCambio = DateTime.UtcNow.ToString("o"),
+                FechaCambio = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
                 Observacion = observacion
             }, transaction);
 
