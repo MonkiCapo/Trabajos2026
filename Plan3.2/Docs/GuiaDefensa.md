@@ -7,12 +7,7 @@
 
 ## 1. Estructura de la Presentación (10-15 minutos)
 
-### 1.1 Introducción (2 min)
-- Presentar el equipo y el problema a resolver
-- Explicar brevemente qué es el sistema: una pitzería distribuida donde el cliente pide pizza por una app, el backend orquesta, la cocina prepara y el reparto entrega
-- Mencionar que es un sistema **distribuido** con comunicación **asincrónica**
-
-### 1.2 Arquitectura del Sistema (3 min)
+### 1.1 Arquitectura del Sistema (3 min)
 - Mostrar el diagrama de arquitectura (ver `ArquitecturaDistribuida.md`)
 - Explicar los 4 procesos independientes:
   - **Api.Pizzeria**: Backend central (Minimal API + Socket Server)
@@ -23,7 +18,7 @@
   - HTTP para Cliente↔Backend (síncrono, request/response)
   - TCP Socket para Backend↔Cocina/Reparto (asíncrono, persistente)
 
-### 1.3 Demo en Vivo (5 min)
+### 1.2 Demo en Vivo (5 min)
 Ejecutar el flujo completo:
 1. Iniciar MySQL, Cocina, Reparto, API, Cliente (en ese orden)
 2. Registrar un cliente
@@ -32,7 +27,7 @@ Ejecutar el flujo completo:
 5. Mostrar cómo el estado cambia en tiempo real
 6. Consultar el pedido por ID
 
-### 1.4 Desafíos y Soluciones (3-5 min)
+### 1.3 Desafíos y Soluciones (3-5 min)
 Ver sección 2 de esta guía.
 
 ---
@@ -61,7 +56,7 @@ Implementamos un **servidor TCP con `TcpListener`** en `SocketServer.cs` que:
 ### Desafío 2: Uso del Logger (Microsoft.Extensions.Logging)
 
 **El problema:**
-Al principio no sabía cómo usar el sistema de logging de .NET. Intentaba usar `Console.WriteLine()` directamente, pero esto no es profesional ni configurable. Necesitaba:
+Al principio no sabía cómo usar el sistema de logging de .NET. Intentaba usar `Console.WriteLine()` directamente, pero no me permitía "estructurarlo". Haciendo que necesite:
 - Logging estructurado con parámetros
 - Diferentes niveles (Information, Warning, Error)
 - Que fuera configurable desde `appsettings.json`
