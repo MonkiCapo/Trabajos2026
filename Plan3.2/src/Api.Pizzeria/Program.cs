@@ -19,36 +19,36 @@ using Api.Pizzeria.Sockets;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add logging
+// Configurar registro (logging)
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 
-// Add JSON configuration to map enum as strings
+// Configurar opciones JSON para mapear enums como strings
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-// Configure MySQL Connection String
+// Configurar cadena de conexión de MySQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=localhost;Port=3306;Database=5to_Pizzeria;User=5to_agbd;Password=Trigg3rs!;";
 
-// Initialize Database using script.sql
+// Inicializar base de datos usando script.sql
 DbInitializer.Initialize(connectionString);
 
-// Register Sockets Server as Singleton Hosted Service
+// Registrar servidor de Sockets como Singleton Hosted Service
 builder.Services.AddSingleton<SocketServer>();
 builder.Services.AddSingleton<ISocketServer>(sp => sp.GetRequiredService<SocketServer>());
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SocketServer>());
 
-// Register Business Services
+// Registrar servicios de negocio
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
-// Register FluentValidation validators
+// Registrar validadores de FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-// Register Swagger
+// Registrar Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -57,7 +57,7 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
-// Enable Swagger in Development
+// Habilitar Swagger en modo Desarrollo
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -67,7 +67,7 @@ app.UseSwaggerUI(c =>
 
 // Endpoints
 
-// 1. POST /api/clientes (Registrar Cliente)
+// 1. POST /api/clientes (Registrar cliente)
 app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, ILogger<Program> logger) =>
 {
     var validation = await validator.ValidateAsync(clienteRequest);
@@ -94,7 +94,7 @@ app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<Cl
 
         var id = await conn.ExecuteScalarAsync<int>(sql, cliente);
         cliente.Id = id;
-        logger.LogInformation("[API] Registered new client: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
+        logger.LogInformation("[API] Nuevo cliente registrado: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
         return Results.Created($"/api/clientes/{cliente.Id}", cliente);
     }
     catch (MySqlException ex) when (ex.Number == 1062)
@@ -103,7 +103,7 @@ app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<Cl
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[API] Error registering client.");
+        logger.LogError(ex, "[API] Error al registrar cliente.");
         return Results.StatusCode(StatusCodes.Status500InternalServerError);
     }
 });
@@ -128,7 +128,7 @@ app.MapGet("/api/clientes/email/{email}", async (string email) =>
     return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
 });
 
-// 2. GET /api/pizzas (Catalogo de Pizzas)
+// 2. GET /api/pizzas (Catálogo de Pizzas)
 app.MapGet("/api/pizzas", async () =>
 {
     using var conn = new MySqlConnection(connectionString);
@@ -136,7 +136,7 @@ app.MapGet("/api/pizzas", async () =>
     return Results.Ok(pizzas);
 });
 
-// 3. POST /api/pedidos (Crear Pedido - CU-03)
+// 3. POST /api/pedidos (Crear pedido - CU-03)
 app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoService, IValidator<PedidoRequest> validator, ILogger<Program> logger) =>
 {
     var validation = await validator.ValidateAsync(request);
@@ -145,7 +145,7 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
         return Results.ValidationProblem(validation.ToDictionary());
     }
 
-    // Resolve email to client ID
+    // Resolver email a ID de cliente
     Pedido? order = null;
     using (var conn = new MySqlConnection(connectionString))
     {
@@ -186,7 +186,7 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
     }
     catch (CocinaNoDisponibleException ex)
     {
-        logger.LogWarning("[API] Order {Id} cancelled because Cocina is not available.", ex.PedidoId);
+        logger.LogWarning("[API] Pedido {Id} cancelado porque Cocina no está disponible.", ex.PedidoId);
         return Results.Json(new
         {
             error = "Servicio de cocina no disponible en este momento",
@@ -196,12 +196,12 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[API] Unexpected error creating order.");
+        logger.LogError(ex, "[API] Error inesperado al crear pedido.");
         return Results.StatusCode(StatusCodes.Status500InternalServerError);
     }
 });
 
-// 4. GET /api/pedidos/{id} (Consultar Pedido - CU-02)
+// 4. GET /api/pedidos/{id} (Consultar pedido - CU-02)
 app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ILogger<Program> logger) =>
 {
     try
@@ -212,7 +212,7 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ILo
             return Results.NotFound();
         }
 
-        // Get Client info
+        // Obtener información del cliente
         using var conn = new MySqlConnection(connectionString);
         var cliente = await conn.QuerySingleOrDefaultAsync<Cliente>(
             "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id", new { Id = order.ClienteId });
@@ -235,7 +235,7 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ILo
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "[API] Error getting order {Id}.", id);
+        logger.LogError(ex, "[API] Error al obtener pedido {Id}.", id);
         return Results.StatusCode(StatusCodes.Status500InternalServerError);
     }
 });

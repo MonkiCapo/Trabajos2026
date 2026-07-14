@@ -22,12 +22,12 @@ public class SocketServer : BackgroundService, ISocketServer
     private readonly IServiceScopeFactory _scopeFactory;
     private TcpListener? _listener;
     
-    // Connected clients
+    // Clientes conectados
     private TcpClient? _cocinaClient;
     private TcpClient? _repartoClient;
     private readonly object _lock = new();
 
-    // ACK collections mapping pedidoId -> TaskCompletionSource
+    // Colecciones ACK mapeando pedidoId -> TaskCompletionSource
     private readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _cocinaAcks = new();
     private readonly ConcurrentDictionary<int, TaskCompletionSource<bool>> _repartoAcks = new();
 
@@ -49,24 +49,24 @@ public class SocketServer : BackgroundService, ISocketServer
     {
         _listener = new TcpListener(IPAddress.Any, Port);
         _listener.Start();
-        _logger.LogInformation("[SOCKETSERVER] Server started on port {Port}.", Port);
+        _logger.LogInformation("[SOCKETSERVER] Servidor iniciado en el puerto {Port}.", Port);
 
         try
         {
             while (!stoppingToken.IsCancellationRequested)
             {
                 var client = await _listener.AcceptTcpClientAsync(stoppingToken);
-                _logger.LogInformation("[SOCKETSERVER] New TCP connection accepted.");
+                _logger.LogInformation("[SOCKETSERVER] Nueva conexión TCP aceptada.");
                 _ = HandleConnectionAsync(client, stoppingToken);
             }
         }
         catch (OperationCanceledException)
         {
-            _logger.LogInformation("[SOCKETSERVER] Stopping listener.");
+            _logger.LogInformation("[SOCKETSERVER] Deteniendo escuchador.");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SOCKETSERVER] Exception in socket acceptance loop.");
+            _logger.LogError(ex, "[SOCKETSERVER] Excepción en el bucle de aceptación de sockets.");
         }
         finally
         {
@@ -84,14 +84,14 @@ public class SocketServer : BackgroundService, ISocketServer
 
         try
         {
-            // The first message must identify the client type
+            // El primer mensaje debe identificar el tipo de cliente
             string? line = await reader.ReadLineAsync(ct);
             if (string.IsNullOrEmpty(line)) return;
 
             var handshake = JsonSerializer.Deserialize<SocketMessage>(line, _jsonOptions);
             if (handshake == null || handshake.Accion != "identificar")
             {
-                _logger.LogWarning("[SOCKETSERVER] Handshake failed. Expected identification message. Received: {Line}", line);
+                _logger.LogWarning("[SOCKETSERVER] Handshake fallido. Se esperaba mensaje de identificación. Recibido: {Line}", line);
                 client.Close();
                 return;
             }
@@ -101,41 +101,41 @@ public class SocketServer : BackgroundService, ISocketServer
             {
                 if (clientType == "cocina")
                 {
-                    _cocinaClient?.Close(); // Disconnect existing
+                    _cocinaClient?.Close(); // Desconectar existente
                     _cocinaClient = client;
-                    _logger.LogInformation("[SOCKETSERVER] Cocina connected and identified.");
+                    _logger.LogInformation("[SOCKETSERVER] Cocina conectada e identificada.");
                 }
                 else if (clientType == "reparto")
                 {
-                    _repartoClient?.Close(); // Disconnect existing
+                    _repartoClient?.Close(); // Desconectar existente
                     _repartoClient = client;
-                    _logger.LogInformation("[SOCKETSERVER] Reparto connected and identified.");
+                    _logger.LogInformation("[SOCKETSERVER] Reparto conectado e identificado.");
                 }
                 else
                 {
-                    _logger.LogWarning("[SOCKETSERVER] Unknown client type: {Type}", handshake.Tipo);
+                    _logger.LogWarning("[SOCKETSERVER] Tipo de cliente desconocido: {Type}", handshake.Tipo);
                     client.Close();
                     return;
                 }
             }
 
-            // Continuous read loop
+            // Bucle de lectura continua
             while (!ct.IsCancellationRequested)
             {
                 line = await reader.ReadLineAsync(ct);
                 if (line == null)
                 {
-                    _logger.LogInformation("[SOCKETSERVER] Client {Type} disconnected gracefully.", clientType);
-                    break; // Client closed connection
+                    _logger.LogInformation("[SOCKETSERVER] Cliente {Type} desconectado gracefulamente.", clientType);
+                    break; // El cliente cerró la conexión
                 }
 
-                _logger.LogInformation("[SOCKETSERVER] Received from {Type}: {Msg}", clientType, line);
+                _logger.LogInformation("[SOCKETSERVER] Recibido de {Type}: {Msg}", clientType, line);
                 _ = ProcessClientMessageAsync(line, clientType);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SOCKETSERVER] Exception handling {Type} connection.", clientType ?? "unidentified");
+            _logger.LogError(ex, "[SOCKETSERVER] Excepción manejando conexión de {Type}.", clientType ?? "no identificado");
         }
         finally
         {
@@ -180,7 +180,7 @@ public class SocketServer : BackgroundService, ISocketServer
             }
             else if (msg.Accion == "pedido_preparado")
             {
-                _logger.LogInformation("[SOCKETSERVER] Cocina finished pedido {PedidoId}. Transitioning state.", msg.PedidoId);
+                _logger.LogInformation("[SOCKETSERVER] Cocina finalizó pedido {PedidoId}. Transicionando estado.", msg.PedidoId);
                 
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<IPedidoService>();
@@ -188,7 +188,7 @@ public class SocketServer : BackgroundService, ISocketServer
             }
             else if (msg.Accion == "pedido_entregado")
             {
-                _logger.LogInformation("[SOCKETSERVER] Reparto delivered pedido {PedidoId}. Transitioning state.", msg.PedidoId);
+                _logger.LogInformation("[SOCKETSERVER] Reparto entregó pedido {PedidoId}. Transicionando estado.", msg.PedidoId);
                 
                 using var scope = _scopeFactory.CreateScope();
                 var service = scope.ServiceProvider.GetRequiredService<IPedidoService>();
@@ -197,7 +197,7 @@ public class SocketServer : BackgroundService, ISocketServer
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SOCKETSERVER] Error processing client message from {Type}: {Line}", clientType, line);
+            _logger.LogError(ex, "[SOCKETSERVER] Error al procesar mensaje del cliente {Type}: {Line}", clientType, line);
         }
     }
 
@@ -211,7 +211,7 @@ public class SocketServer : BackgroundService, ISocketServer
 
         if (client == null || !client.Connected)
         {
-            _logger.LogWarning("[SOCKETSERVER] Cannot send order: Cocina is not connected.");
+            _logger.LogWarning("[SOCKETSERVER] No se puede enviar pedido: Cocina no está conectada.");
             throw new SocketException((int)SocketError.ConnectionRefused);
         }
 
@@ -242,7 +242,7 @@ public class SocketServer : BackgroundService, ISocketServer
             };
 
             string json = JsonSerializer.Serialize(msg, _jsonOptions) + "\n";
-            _logger.LogInformation("[SOCKETSERVER] Sending pedido {Id} to Cocina...", pedido.Id);
+            _logger.LogInformation("[SOCKETSERVER] Enviando pedido {Id} a Cocina...", pedido.Id);
             await writer.WriteAsync(json);
 
             // Wait for ACK
@@ -253,13 +253,13 @@ public class SocketServer : BackgroundService, ISocketServer
             }
             else
             {
-                _logger.LogWarning("[SOCKETSERVER] Timeout waiting for ACK from Cocina for pedido {Id}.", pedido.Id);
+                _logger.LogWarning("[SOCKETSERVER] Timeout esperando ACK de Cocina para pedido {Id}.", pedido.Id);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SOCKETSERVER] Exception sending pedido {Id} to Cocina.", pedido.Id);
+            _logger.LogError(ex, "[SOCKETSERVER] Excepción al enviar pedido {Id} a Cocina.", pedido.Id);
             throw;
         }
         finally
@@ -278,7 +278,7 @@ public class SocketServer : BackgroundService, ISocketServer
 
         if (client == null || !client.Connected)
         {
-            _logger.LogWarning("[SOCKETSERVER] Cannot assign order: Reparto is not connected.");
+            _logger.LogWarning("[SOCKETSERVER] No se puede asignar pedido: Reparto no está conectado.");
             return false;
         }
 
@@ -298,10 +298,10 @@ public class SocketServer : BackgroundService, ISocketServer
             };
 
             string json = JsonSerializer.Serialize(msg, _jsonOptions) + "\n";
-            _logger.LogInformation("[SOCKETSERVER] Assigning delivery of pedido {Id} to Reparto...", pedido.Id);
+            _logger.LogInformation("[SOCKETSERVER] Asignando entrega del pedido {Id} a Reparto...", pedido.Id);
             await writer.WriteAsync(json);
 
-            // Wait for ACK
+            // Esperar ACK
             var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(5000, ct));
             if (completedTask == tcs.Task)
             {
@@ -309,13 +309,13 @@ public class SocketServer : BackgroundService, ISocketServer
             }
             else
             {
-                _logger.LogWarning("[SOCKETSERVER] Timeout waiting for ACK from Reparto for pedido {Id}.", pedido.Id);
+                _logger.LogWarning("[SOCKETSERVER] Timeout esperando ACK de Reparto para pedido {Id}.", pedido.Id);
                 return false;
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[SOCKETSERVER] Exception sending assignment of pedido {Id} to Reparto.", pedido.Id);
+            _logger.LogError(ex, "[SOCKETSERVER] Excepción al enviar asignación del pedido {Id} a Reparto.", pedido.Id);
             return false;
         }
         finally
@@ -325,7 +325,7 @@ public class SocketServer : BackgroundService, ISocketServer
     }
 }
 
-// Support classes for Socket Communication
+// Clases de soporte para comunicación Socket
 public class SocketMessage
 {
     public string Accion { get; set; } = string.Empty;

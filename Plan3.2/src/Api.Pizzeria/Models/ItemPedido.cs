@@ -8,6 +8,6 @@ public class ItemPedido
     public int Cantidad { get; set; }
     public decimal PrecioUnitario { get; set; }
 
-    // Auxiliar properties
+    // Propiedades auxiliares
     public string PizzaNombre { get; set; } = string.Empty;
 }

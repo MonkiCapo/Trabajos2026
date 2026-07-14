@@ -47,7 +47,7 @@ public class PedidoService : IPedidoService
 
         try
         {
-            // 1. Verify client exists
+            // 1. Verificar que el cliente existe
             var clientExists = await connection.ExecuteScalarAsync<int>(
                 "SELECT COUNT(1) FROM CLIENTE WHERE id = @Id", new { Id = nuevoPedido.ClienteId }, transaction);
             if (clientExists == 0)
@@ -55,7 +55,7 @@ public class PedidoService : IPedidoService
                 throw new ArgumentException($"El cliente con ID {nuevoPedido.ClienteId} no existe.");
             }
 
-            // 2. Fetch pizza prices by name and calculate total
+            // 2. Obtener precios de pizzas por nombre y calcular total
             decimal calculatedTotal = 0;
 
             foreach (var item in nuevoPedido.Items)
@@ -80,7 +80,7 @@ public class PedidoService : IPedidoService
             nuevoPedido.FechaCreacion = DateTime.UtcNow;
             nuevoPedido.FechaActualizacion = DateTime.UtcNow;
 
-            // 3. Insert PEDIDO
+            // 3. Insertar PEDIDO
             const string insertPedidoSql = @"
                 INSERT INTO PEDIDO (cliente_id, estado_id, fecha_creacion, fecha_actualizacion, total)
                 VALUES (@ClienteId, @EstadoId, @FechaCreacion, @FechaActualizacion, @Total);
@@ -97,7 +97,7 @@ public class PedidoService : IPedidoService
 
             nuevoPedido.Id = id;
 
-            // 4. Insert ITEMS
+            // 4. Insertar ITEMS
             const string insertItemSql = @"
                 INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, cantidad, precio_unitario)
                 VALUES (@PedidoId, @PizzaId, @Cantidad, @PrecioUnitario);";
@@ -114,7 +114,7 @@ public class PedidoService : IPedidoService
                 }, transaction);
             }
 
-            // 5. Insert HISTORIAL
+            // 5. Insertar HISTORIAL
             const string insertHistorialSql = @"
                 INSERT INTO HISTORIAL_ESTADO_PEDIDO (pedido_id, estado_id, fecha_cambio, observacion)
                 VALUES (@PedidoId, @EstadoId, @FechaCambio, @Observacion);";
@@ -132,12 +132,12 @@ public class PedidoService : IPedidoService
         catch (Exception ex)
         {
             transaction.Rollback();
-            _logger.LogError(ex, "[PEDIDOSERVICE] Error creating order in DB.");
+            _logger.LogError(ex, "[PEDIDOSERVICE] Error al crear pedido en la base de datos.");
             throw;
         }
 
-        // 6. Socket interaction with Cocina (outside transaction)
-        _logger.LogInformation("[PEDIDOSERVICE] Attempting socket delivery to Cocina for pedido {Id}...", nuevoPedido.Id);
+        // 6. Interacción socket con Cocina (fuera de la transacción)
+        _logger.LogInformation("[PEDIDOSERVICE] Intentando enviar pedido por socket a Cocina para pedido {Id}...", nuevoPedido.Id);
         try
         {
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
@@ -145,21 +145,21 @@ public class PedidoService : IPedidoService
 
             if (ack)
             {
-                _logger.LogInformation("[PEDIDOSERVICE] Cocina acknowledged pedido {Id}. Changing state to EnPreparacion.", nuevoPedido.Id);
+                _logger.LogInformation("[PEDIDOSERVICE] Cocina confirmó recepción del pedido {Id}. Cambiando estado a EnPreparacion.", nuevoPedido.Id);
                 await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.EnPreparacion, "Cocina confirmó recepción (ACK)");
                 nuevoPedido.Estado = EstadoPedido.EnPreparacion;
                 nuevoPedido.FechaActualizacion = DateTime.UtcNow;
             }
             else
             {
-                _logger.LogWarning("[PEDIDOSERVICE] Cocina ACK failed (timeout or error) for pedido {Id}. Cancelling order.", nuevoPedido.Id);
+                _logger.LogWarning("[PEDIDOSERVICE] ACK de Cocina fallido (timeout o error) para pedido {Id}. Cancelando pedido.", nuevoPedido.Id);
                 await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.Cancelado, "Fallo de comunicación con cocina (ACK no recibido)");
                 throw new CocinaNoDisponibleException("La cocina no confirmó la recepción del pedido a tiempo.", nuevoPedido.Id);
             }
         }
         catch (Exception ex) when (ex is SocketException || ex is CocinaNoDisponibleException || ex is OperationCanceledException)
         {
-            _logger.LogError(ex, "[PEDIDOSERVICE] Cocina is not available. Connection failed for pedido {Id}. Cancelling order.", nuevoPedido.Id);
+            _logger.LogError(ex, "[PEDIDOSERVICE] Cocina no disponible. Falló la conexión para pedido {Id}. Cancelando pedido.", nuevoPedido.Id);
             await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.Cancelado, $"Fallo de red: {ex.Message}");
             throw new CocinaNoDisponibleException("Servicio de cocina no disponible en este momento.", nuevoPedido.Id);
         }
@@ -175,9 +175,9 @@ public class PedidoService : IPedidoService
 
         try
         {
-            _logger.LogInformation("[PEDIDOSERVICE] Transitioning pedido {Id} to {Estado} - {Obs}", pedidoId, nuevoEstado, observacion);
+            _logger.LogInformation("[PEDIDOSERVICE] Transicionando pedido {Id} a {Estado} - {Obs}", pedidoId, nuevoEstado, observacion);
 
-            // Update pedido
+            // Actualizar pedido
             const string updateSql = @"
                 UPDATE PEDIDO 
                 SET estado_id = @EstadoId, fecha_actualizacion = @FechaActualizacion 
@@ -190,7 +190,7 @@ public class PedidoService : IPedidoService
                 Id = pedidoId
             }, transaction);
 
-            // Insert historial
+            // Insertar historial
             const string insertHistorialSql = @"
                 INSERT INTO HISTORIAL_ESTADO_PEDIDO (pedido_id, estado_id, fecha_cambio, observacion)
                 VALUES (@PedidoId, @EstadoId, @FechaCambio, @Observacion);";
@@ -208,11 +208,11 @@ public class PedidoService : IPedidoService
         catch (Exception ex)
         {
             transaction.Rollback();
-            _logger.LogError(ex, "[PEDIDOSERVICE] Error updating order status in DB for pedido {Id}.", pedidoId);
+            _logger.LogError(ex, "[PEDIDOSERVICE] Error al actualizar estado del pedido en la base de datos para pedido {Id}.", pedidoId);
             throw;
         }
 
-        // If the new state is EnViaje, trigger shipment to Reparto
+        // Si el nuevo estado es EnViaje, activar envío a Reparto
         if (nuevoEstado == EstadoPedido.EnViaje)
         {
             _ = Task.Run(async () =>
@@ -230,13 +230,13 @@ public class PedidoService : IPedidoService
                         bool assigned = await _socketServer.EnviarPedidoARepartoAsync(pedido, address ?? "Sin dirección", cts.Token);
                         if (!assigned)
                         {
-                            _logger.LogWarning("[PEDIDOSERVICE] Reparto was not available or timed out for assignment of pedido {Id}.", pedidoId);
+                            _logger.LogWarning("[PEDIDOSERVICE] Reparto no disponible o timeout para la asignación del pedido {Id}.", pedidoId);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[PEDIDOSERVICE] Failed to send assignment to Reparto for pedido {Id}.", pedidoId);
+                    _logger.LogError(ex, "[PEDIDOSERVICE] Falló el envío de asignación a Reparto para pedido {Id}.", pedidoId);
                 }
             });
         }

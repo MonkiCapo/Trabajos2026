@@ -11,7 +11,7 @@ public static class DbInitializer
         var csBuilder = new MySqlConnectionStringBuilder(connectionString);
         string dbName = csBuilder.Database;
 
-        // 1. Connect WITHOUT database to check/create it
+        // 1. Conectar SIN base de datos para verificar/crearla
         var serverCs = new MySqlConnectionStringBuilder(connectionString) { Database = "" };
 
         using (var conn = new MySqlConnection(serverCs.ConnectionString))
@@ -19,7 +19,7 @@ public static class DbInitializer
             conn.Open();
             using var cmd = conn.CreateCommand();
 
-            // Check if database exists
+            // Verificar si la base de datos existe
             cmd.CommandText = $"SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name = '{dbName}'";
             long exists = (long)cmd.ExecuteScalar()!;
 
@@ -36,11 +36,11 @@ public static class DbInitializer
             }
         }
 
-        // 2. Connect to the database
+        // 2. Conectar a la base de datos
         using var connection = new MySqlConnection(connectionString);
         connection.Open();
 
-        // 3. Run script (CREATE TABLE IF NOT EXISTS + INSERT IGNORE = safe to run always)
+        // 3. Ejecutar script (CREATE TABLE IF NOT EXISTS + INSERT IGNORE = seguro de ejecutar siempre)
         Console.WriteLine("[DB INFO] Running script.sql...");
         RunFullScript(connection);
 
@@ -59,7 +59,7 @@ public static class DbInitializer
         Console.WriteLine($"[DB INFO] Using script: {scriptPath}");
         string sql = File.ReadAllText(scriptPath);
 
-        // Remove DROP/CREATE/USE DATABASE lines (we already handled that)
+        // Eliminar líneas DROP/CREATE/USE DATABASE (ya se manejaron antes)
         var lines = sql.Split('\n');
         var filtered = lines.Where(l =>
         {
