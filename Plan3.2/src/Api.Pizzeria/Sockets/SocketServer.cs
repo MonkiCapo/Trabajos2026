@@ -11,8 +11,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Api.Pizzeria.Models;
-using Api.Pizzeria.Services;
+using Core.Pizzeria.Entidades;
+using Core.Pizzeria.Servicios;
+using Core.Pizzeria.Servicios.Enum;
 
 namespace Api.Pizzeria.Sockets;
 

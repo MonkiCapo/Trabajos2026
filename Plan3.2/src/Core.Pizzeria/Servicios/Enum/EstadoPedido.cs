@@ -1,4 +1,4 @@
-namespace Api.Pizzeria.Models;
+namespace Core.Pizzeria.Servicios.Enum;
 
 public enum EstadoPedido
 {

@@ -9,7 +9,9 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Dapper;
 using System.Net.Sockets;
-using Api.Pizzeria.Models;
+using Core.Pizzeria.Entidades;
+using Core.Pizzeria.Servicios;
+using Core.Pizzeria.Servicios.Enum;
 using Api.Pizzeria.Sockets;
 
 namespace Api.Pizzeria.Services;

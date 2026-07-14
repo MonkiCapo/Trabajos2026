@@ -1,5 +1,7 @@
 <Solution>
   <Project Path="Api.Pizzeria/Api.Pizzeria.csproj" />
+  <Project Path="Core.Pizzeria/Core.Pizzeria.csproj" />
+  <Project Path="Dapper.Pizzeria/Dapper.Pizzeria.csproj" />
   <Project Path="Consola.Cliente/Consola.Cliente.csproj" />
   <Project Path="Consola.Cocina/Consola.Cocina.csproj" />
   <Project Path="Consola.Reparto/Consola.Reparto.csproj" />

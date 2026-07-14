@@ -1,5 +1,5 @@
 using FluentValidation;
-using Api.Pizzeria.DTOs;
+using Core.Pizzeria.DTOs;
 
 namespace Api.Pizzeria.Validations;
 

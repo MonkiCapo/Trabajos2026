@@ -1,4 +1,4 @@
-namespace Api.Pizzeria.DTOs;
+namespace Core.Pizzeria.DTOs;
 
 public class ClienteRequest
 {

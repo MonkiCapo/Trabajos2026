@@ -1,4 +1,4 @@
-namespace Api.Pizzeria.Models;
+namespace Core.Pizzeria.Entidades;
 
 public class Pizza
 {

@@ -97,3 +97,7 @@ C:/Users/Noxie-PC/Desktop/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.pdb
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.genruntimeconfig.cache
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/ref/Api.Pizzeria.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Core.Pizzeria.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Dapper.Pizzeria.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Core.Pizzeria.pdb
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Dapper.Pizzeria.pdb

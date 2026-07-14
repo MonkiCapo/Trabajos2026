@@ -146,6 +146,31 @@
         "frameworkReferences": [
           "Microsoft.AspNetCore.App"
         ]
+      },
+      "Core.Pizzeria/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "compile": {
+          "bin/placeholder/Core.Pizzeria.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Core.Pizzeria.dll": {}
+        }
+      },
+      "Dapper.Pizzeria/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Core.Pizzeria": "1.0.0",
+          "Dapper": "2.1.79",
+          "MySqlConnector": "2.6.1"
+        },
+        "compile": {
+          "bin/placeholder/Dapper.Pizzeria.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Dapper.Pizzeria.dll": {}
+        }
       }
     }
   },
@@ -586,13 +611,23 @@
         "swashbuckle.aspnetcore.swaggerui.10.2.3.nupkg.sha512",
         "swashbuckle.aspnetcore.swaggerui.nuspec"
       ]
+    },
+    "Core.Pizzeria/1.0.0": {
+      "type": "project",
+      "path": "../Core.Pizzeria/Core.Pizzeria.csproj",
+      "msbuildProject": "../Core.Pizzeria/Core.Pizzeria.csproj"
+    },
+    "Dapper.Pizzeria/1.0.0": {
+      "type": "project",
+      "path": "../Dapper.Pizzeria/Dapper.Pizzeria.csproj",
+      "msbuildProject": "../Dapper.Pizzeria/Dapper.Pizzeria.csproj"
     }
   },
   "projectFileDependencyGroups": {
     "net10.0": [
-      "Dapper >= 2.1.79",
+      "Core.Pizzeria >= 1.0.0",
+      "Dapper.Pizzeria >= 1.0.0",
       "FluentValidation.DependencyInjectionExtensions >= 12.1.1",
-      "MySqlConnector >= 2.6.1",
       "Swashbuckle.AspNetCore >= 10.2.3"
     ]
   },
@@ -621,7 +656,14 @@
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
-          "projectReferences": {}
+          "projectReferences": {
+            "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
+              "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj"
+            },
+            "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj": {
+              "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj"
+            }
+          }
         }
       },
       "warningProperties": {
@@ -640,17 +682,9 @@
       "net10.0": {
         "targetAlias": "net10.0",
         "dependencies": {
-          "Dapper": {
-            "target": "Package",
-            "version": "[2.1.79, )"
-          },
           "FluentValidation.DependencyInjectionExtensions": {
             "target": "Package",
             "version": "[12.1.1, )"
-          },
-          "MySqlConnector": {
-            "target": "Package",
-            "version": "[2.6.1, )"
           },
           "Swashbuckle.AspNetCore": {
             "target": "Package",

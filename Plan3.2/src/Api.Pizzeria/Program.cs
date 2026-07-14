@@ -12,10 +12,13 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Dapper;
 using Api.Pizzeria.Data;
-using Api.Pizzeria.DTOs;
-using Api.Pizzeria.Models;
-using Api.Pizzeria.Services;
 using Api.Pizzeria.Sockets;
+using Core.Pizzeria.DTOs;
+using Core.Pizzeria.Entidades;
+using Core.Pizzeria.Servicios;
+using Core.Pizzeria.Servicios.Enum;
+using Dapper.Pizzeria;
+using Api.Pizzeria.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 

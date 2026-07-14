@@ -8,9 +8,9 @@
     ".NETCoreApp,Version=v10.0": {
       "Api.Pizzeria/1.0.0": {
         "dependencies": {
-          "Dapper": "2.1.79",
+          "Core.Pizzeria": "1.0.0",
+          "Dapper.Pizzeria": "1.0.0",
           "FluentValidation.DependencyInjectionExtensions": "12.1.1",
-          "MySqlConnector": "2.6.1",
           "Swashbuckle.AspNetCore": "10.2.3"
         },
         "runtime": {
@@ -96,6 +96,27 @@
             "fileVersion": "10.2.3.2721"
           }
         }
+      },
+      "Core.Pizzeria/1.0.0": {
+        "runtime": {
+          "Core.Pizzeria.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Dapper.Pizzeria/1.0.0": {
+        "dependencies": {
+          "Core.Pizzeria": "1.0.0",
+          "Dapper": "2.1.79",
+          "MySqlConnector": "2.6.1"
+        },
+        "runtime": {
+          "Dapper.Pizzeria.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
       }
     }
   },
@@ -167,6 +188,16 @@
       "sha512": "sha512-nthWONRs/FJ4yyG206g1cC52WEG8EqrjuMWjGdR+5XG7lbjFto6NqcI9EMICgVFom/UivIjUVwI76ZHbHwTPfQ==",
       "path": "swashbuckle.aspnetcore.swaggerui/10.2.3",
       "hashPath": "swashbuckle.aspnetcore.swaggerui.10.2.3.nupkg.sha512"
+    },
+    "Core.Pizzeria/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Dapper.Pizzeria/1.0.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
     }
   }
 }

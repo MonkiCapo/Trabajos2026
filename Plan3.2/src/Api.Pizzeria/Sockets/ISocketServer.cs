@@ -1,6 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
-using Api.Pizzeria.Models;
+using Core.Pizzeria.Entidades;
 
 namespace Api.Pizzeria.Sockets;
 
