@@ -5,4 +5,5 @@
   <Project Path="Consola.Cliente/Consola.Cliente.csproj" />
   <Project Path="Consola.Cocina/Consola.Cocina.csproj" />
   <Project Path="Consola.Reparto/Consola.Reparto.csproj" />
+  <Project Path="MVC.Pizzeria/MVC.Pizzeria.csproj" />
 </Solution>
