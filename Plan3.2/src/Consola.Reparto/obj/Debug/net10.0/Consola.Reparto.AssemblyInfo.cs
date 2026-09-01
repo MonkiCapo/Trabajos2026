@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Consola.Reparto")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2739936497e9391cc88a08d409399bb4489aebba")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+b6630b9f6f0ad8f405370f21af066e75203f24c4")]
 [assembly: System.Reflection.AssemblyProductAttribute("Consola.Reparto")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Consola.Reparto")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -18,15 +18,6 @@ public class HomeController : Controller
             new PizzaViewModel
             {
                 Id = 1,
-                Nombre = "Pizza Pepperoni",
-                Tamanio = "Grande",
-                Precio = 1500.00m,
-                Descripcion = "Queso muzzarella, salsa de tomate y abundante pepperoni.",
-                Ingredientes = new List<string> { "Muzzarella", "Pepperoni", "Salsa de tomate", "Orégano" }
-            },
-            new PizzaViewModel
-            {
-                Id = 2,
                 Nombre = "Pizza Jamón y Queso",
                 Tamanio = "Grande",
                 Precio = 1400.00m,
@@ -35,7 +26,7 @@ public class HomeController : Controller
             },
             new PizzaViewModel
             {
-                Id = 3,
+                Id = 2,
                 Nombre = "Pizza Muzzarella",
                 Tamanio = "Grande",
                 Precio = 1200.00m,
@@ -44,7 +35,7 @@ public class HomeController : Controller
             },
             new PizzaViewModel
             {
-                Id = 4,
+                Id = 3,
                 Nombre = "Pizza Napolitana",
                 Tamanio = "Grande",
                 Precio = 1300.00m,
