@@ -1,18 +1,23 @@
 :root {
-    --color-fondo: #E4EEE8;
-    --color-principal: #246B67;
-    --color-acento: #9F3033;
-    --color-oscuro: #304F6A;
+    --color-fondo: #FAF6F0;
+    --color-principal: #C82333;
+    --color-principal-hover: #A71D2A;
+    --color-acento: #2E7D32;
+    --color-acento-hover: #1E5631;
+    --color-oscuro: #1C1917;
+    --color-tarjeta: #FFFFFF;
+    --color-texto-mutado: #6C757D;
+    --color-borde: #E5E7EB;
 }
 
 html {
     font-size: 14px;
+    position: relative;
+    min-height: 100%;
 }
 
-@media (min-width: 768px) 
-{
-  html 
-  {
+@media (min-width: 768px) {
+    html {
         font-size: 16px;
     }
 }
@@ -20,6 +25,71 @@ html {
 body {
     margin-bottom: 60px;
     background-color: var(--color-fondo);
+    color: var(--color-oscuro);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Custom Navigation & Header */
+.navbar-custom {
+    background-color: #FFFFFF;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-bottom: 3px solid var(--color-principal);
+}
+
+.navbar-brand-custom {
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--color-principal) !important;
+    letter-spacing: 0.5px;
+}
+
+.nav-link-custom {
+    font-weight: 500;
+    color: var(--color-oscuro) !important;
+    transition: color 0.2s ease-in-out;
+}
+
+.nav-link-custom:hover,
+.nav-link-custom.active {
+    color: var(--color-principal) !important;
+}
+
+/* Buttons */
+.btn-pizza-primary {
+    background-color: var(--color-principal);
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.6rem 1.4rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-pizza-primary:hover {
+    background-color: var(--color-principal-hover);
+    color: #FFFFFF;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(200, 35, 51, 0.3);
+}
+
+.btn-pizza-secondary {
+    background-color: var(--color-acento);
+    color: #FFFFFF;
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0.6rem 1.4rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-pizza-secondary:hover {
+    background-color: var(--color-acento-hover);
+    color: #FFFFFF;
+    transform: translateY(-1px);
 }
 
 .btn:focus,
@@ -27,21 +97,119 @@ body {
 .btn-link.nav-link:focus,
 .form-control:focus,
 .form-check-input:focus {
-    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem var(--color-principal);
+    box-shadow: 0 0 0 0.1rem #FFFFFF, 0 0 0 0.25rem var(--color-principal);
 }
 
-html {
-    position: relative;
-    min-height: 100%;
+/* Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, rgba(200, 35, 51, 0.08) 0%, rgba(46, 125, 50, 0.05) 100%);
+    border-radius: 16px;
+    padding: 3.5rem 2rem;
+    margin-bottom: 2.5rem;
+    border: 1px solid rgba(200, 35, 51, 0.15);
 }
 
-.form-floating > .form-control-plaintext::placeholder,
-.form-floating > .form-control::placeholder {
-    color: var(--bs-secondary-color);
-    text-align: end;
+.hero-title {
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: var(--color-principal);
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder,
-.form-floating > .form-control:focus::placeholder {
-    text-align: start;
+.hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--color-oscuro);
+    max-width: 650px;
+    margin: 1rem auto;
+}
+
+/* Feature Cards */
+.feature-card {
+    background: var(--color-tarjeta);
+    border-radius: 12px;
+    padding: 1.5rem;
+    border: 1px solid var(--color-borde);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.04);
+    height: 100%;
+    transition: transform 0.2s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+}
+
+.feature-icon {
+    font-size: 2rem;
+    margin-bottom: 0.75rem;
+}
+
+/* Product Catalog Cards */
+.product-card {
+    background-color: var(--color-tarjeta);
+    border-radius: 14px;
+    border: 1px solid var(--color-borde);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.25s ease-in-out;
+}
+
+.product-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.product-header {
+    background-color: rgba(200, 35, 51, 0.04);
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--color-borde);
+}
+
+.product-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--color-oscuro);
+    margin: 0;
+}
+
+.product-badge {
+    background-color: var(--color-acento);
+    color: white;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.product-body {
+    padding: 1.25rem;
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.product-price {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--color-principal);
+}
+
+.ingredient-badge {
+    background-color: #F3F4F6;
+    color: #374151;
+    font-size: 0.8rem;
+    border-radius: 6px;
+    padding: 0.2rem 0.5rem;
+    margin-right: 0.3rem;
+    margin-bottom: 0.3rem;
+    display: inline-block;
+}
+
+/* Footer */
+.footer-custom {
+    background-color: #FFFFFF;
+    border-top: 1px solid var(--color-borde);
+    color: var(--color-texto-mutado);
 }

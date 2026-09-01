@@ -1,62 +1,33 @@
-﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-for details on configuring this project to bundle and minify static web assets. */
+/* Estilos aislados para el Layout (Navbar, Footer y contenedor principal) */
 
-a.navbar-brand {
-    white-space: normal;
-    text-align: center;
-    word-break: break-all;
+.navbar-custom {
+    background-color: #FFFFFF;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    border-bottom: 3px solid var(--color-principal);
 }
 
-a {
-    color: var(--color-principal);
+.navbar-brand-custom {
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: var(--color-principal) !important;
+    letter-spacing: 0.5px;
 }
 
-.navbar {
-    background-color: var(--color-oscuro) !important;
+.nav-link-custom {
+    font-weight: 500;
+    color: var(--color-oscuro) !important;
+    transition: color 0.2s ease-in-out;
 }
 
-.navbar-brand,
-.nav-link {
-    color: white !important;
+.nav-link-custom:hover,
+.nav-link-custom.active {
+    color: var(--color-principal) !important;
 }
 
-.nav-link:hover {
-    color: var(--color-acento) !important;
-}
-
-.btn-primary {
-    color: #fff;
-    background-color: var(--color-principal);
-    border-color: var(--color-principal);
-}
-
-.btn-primary:hover {
-    background-color: var(--color-acento);
-    border-color: var(--color-acento);
-}
-
-.nav-pills .nav-link.active,
-.nav-pills .show > .nav-link {
-    color: #fff;
-    background-color: var(--color-principal);
-    border-color: var(--color-principal);
-}
-
-.border-top {
-    border-top: 1px solid #e5e5e5;
-}
-
-.border-bottom {
-    border-bottom: 1px solid #e5e5e5;
-}
-
-.box-shadow {
-    box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
-}
-
-button.accept-policy {
-    font-size: 1rem;
-    line-height: inherit;
+.footer-custom {
+    background-color: #FFFFFF;
+    border-top: 1px solid var(--color-borde);
+    color: var(--color-texto-mutado);
 }
 
 .footer {
