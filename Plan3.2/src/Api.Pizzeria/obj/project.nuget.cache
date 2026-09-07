@@ -1,19 +1,16 @@
 {
   "version": 2,
-  "dgSpecHash": "sc+aBmU6iz8=",
+  "dgSpecHash": "jmcEdAZw3ms=",
   "success": true,
   "projectFilePath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj",
   "expectedPackageFiles": [
     "/home/et12alumno/.nuget/packages/dapper/2.1.79/dapper.2.1.79.nupkg.sha512",
     "/home/et12alumno/.nuget/packages/fluentvalidation/12.1.1/fluentvalidation.12.1.1.nupkg.sha512",
     "/home/et12alumno/.nuget/packages/fluentvalidation.dependencyinjectionextensions/12.1.1/fluentvalidation.dependencyinjectionextensions.12.1.1.nupkg.sha512",
-    "/home/et12alumno/.nuget/packages/microsoft.extensions.apidescription.server/10.0.0/microsoft.extensions.apidescription.server.10.0.0.nupkg.sha512",
+    "/home/et12alumno/.nuget/packages/microsoft.aspnetcore.openapi/10.0.11/microsoft.aspnetcore.openapi.10.0.11.nupkg.sha512",
     "/home/et12alumno/.nuget/packages/microsoft.openapi/2.7.5/microsoft.openapi.2.7.5.nupkg.sha512",
     "/home/et12alumno/.nuget/packages/mysqlconnector/2.6.1/mysqlconnector.2.6.1.nupkg.sha512",
-    "/home/et12alumno/.nuget/packages/swashbuckle.aspnetcore/10.2.3/swashbuckle.aspnetcore.10.2.3.nupkg.sha512",
-    "/home/et12alumno/.nuget/packages/swashbuckle.aspnetcore.swagger/10.2.3/swashbuckle.aspnetcore.swagger.10.2.3.nupkg.sha512",
-    "/home/et12alumno/.nuget/packages/swashbuckle.aspnetcore.swaggergen/10.2.3/swashbuckle.aspnetcore.swaggergen.10.2.3.nupkg.sha512",
-    "/home/et12alumno/.nuget/packages/swashbuckle.aspnetcore.swaggerui/10.2.3/swashbuckle.aspnetcore.swaggerui.10.2.3.nupkg.sha512"
+    "/home/et12alumno/.nuget/packages/scalar.aspnetcore/2.17.3/scalar.aspnetcore.2.17.3.nupkg.sha512"
   ],
   "logs": []
 }

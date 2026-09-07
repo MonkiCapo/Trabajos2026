@@ -7,15 +7,14 @@
 ## 1. Relevamiento Funcional
 
 ### 1.1 Límites del Sistema y Actores
-Para el diseño de casos de uso del sistema distribuido, se identifican los siguientes **Actores Externos** que interactúan con el **Límite del Sistema (Backend / API REST)**.
+Para el diseño de casos de uso del sistema, se identifican los siguientes **Actores Externos** que interactúan con el **Límite del Sistema (Backend / API REST)**.
 
 | Actor | Rol | Canal de Comunicación |
 | :--- | :--- | :--- |
-| **Cliente** | Usuario final que selecciona las pizzas, arma y envía la orden. | Aplicación Cliente (C#) → API REST (HTTP) |
-| **Servicio de Cocina** | Proceso independiente automatizado que recibe el pedido y simula la preparación. | Backend → Socket TCP (Mensajes asíncronos) |
-| **Servicio de Reparto** | Proceso independiente que toma el pedido listo y simula la logística de entrega. | Backend → Socket TCP (Mensajes asíncronos) |
+| **Cliente** | Usuario final que selecciona las pizzas, arma y envía la orden. | Aplicación Cliente (C#) o Scalar → API REST (HTTP) |
+| **Administrador** | Usuario que gestiona el avance de los pedidos (inicia preparación, marca listo, marca entregado). | API REST (HTTP) |
 
-> **Nota de Análisis:** El Backend no se considera un actor, sino el sistema en sí mismo que orquesta el flujo, procesa las peticiones HTTP y delega las tareas a través de sockets a los servicios externos.
+> **Nota de Análisis:** El Backend es el sistema central monolítico que orquesta el flujo completo: procesa las peticiones HTTP, valida, persiste y gestiona la máquina de estados del pedido sin depender de procesos externos.
 
 ### 1.2 Entidades de Negocio
 Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia de los datos, se definen las siguientes entidades:
@@ -24,13 +23,13 @@ Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia d
 * **Pizza:** Actúa como catálogo de productos disponibles en la pizzería (Nombre, Tamaño, Precio base).
 * **ItemPedido (Entidad de Soporte):** Representa la línea intermedia que desacopla la Pizza del Pedido. Permite solicitar múltiples cantidades de una misma pizza y congelar el `precio_unitario` histórico al momento de la compra.
 * **Pedido:** Entidad central que unifica al Cliente, la lista de Items y el estado del ciclo de vida de la orden.
-* **EstadoPedido (Enumerador):** Define estrictamente los estados requeridos: `EsperaConfirmacion`, `EnPreparacion`, `EnViaje`, `Entregado`. Se añade `Cancelado` para el tratamiento de excepciones de red.
+* **EstadoPedido (Enumerador):** Define estrictamente los estados requeridos: `EsperaConfirmacion`, `EnPreparacion`, `EnViaje`, `Entregado`. Se añade `Cancelado` para el tratamiento de pedidos anulados.
 
 ### 1.3 Ciclo de Vida del Pedido (Máquina de Estados)
-* **EsperaConfirmacion → EnPreparacion:** Ocurre cuando el Backend procesa la orden y el Servicio de Cocina confirma la recepción exitosa por socket.
-* **EnPreparacion → EnViaje:** Ocurre una vez que la cocina notifica de manera asíncrona que las pizzas están listas.
-* **EnViaje → Entregado:** Fin del ciclo, cuando el repartidor confirma la entrega efectiva al cliente.
-* **Transiciones de Error (Hacia `Cancelado`):** Si durante el estado de *EsperaConfirmacion* el socket con la cocina sufre un timeout o rechazo de conexión, el pedido se cancela para evitar inconsistencias distribuidas.
+* **EsperaConfirmacion → EnPreparacion:** Ocurre cuando el Backend recibe una petición HTTP (PATCH) que inicia la preparación del pedido.
+* **EnPreparacion → EnViaje:** Ocurre cuando el Backend recibe una petición HTTP (PATCH) indicando que las pizzas están listas para enviar.
+* **EnViaje → Entregado:** Fin del ciclo, cuando el Backend recibe una petición HTTP (PATCH) indicando que la entrega fue efectiva al cliente.
+* **Transición de Error (Hacia `Cancelado`):** Un pedido puede cancelarse mediante una petición HTTP (PATCH) que lo anule. El estado `Cancellado` es gestionado y registrado en el historial como cualquier otra transición.
 
 ---
 
@@ -82,9 +81,8 @@ classDiagram
     }
 
     class PedidoService {
-        -ISocketServer socketServer
         +bool CrearPedido(Pedido nuevoPedido)
-        +void ActualizarEstado(int pedidoId, EstadoPedido nuevoEstado)
+        +void ActualizarEstado(int pedidoId, EstadoPedido nuevoEstado, string observacion)
     }
 
     Cliente "1" --> "0..*" Pedido : tiene
@@ -173,61 +171,54 @@ erDiagram
 
 ## 4. Diagrama de Secuencia del Pedido
 
-Este diagrama describe la interacción entre el cliente, el backend y los servicios de cocina y reparto, destacando el desacople temporal entre la respuesta HTTP y los eventos asíncronos por socket:
+Este diagrama describe la interacción entre el cliente (o el administrador), el backend y la base de datos, todo a través de HTTP sin depender de procesos externos:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cliente as Cliente (App C#)
+    actor Cliente as Cliente (App C# / Scalar)
+    actor Admin as Administrador (Gestiona estados)
     participant API as Backend (Minimal API)
-    participant Cocina as Servicio Cocina (Socket)
-    participant Reparto as Servicio Reparto (Socket)
+    participant DB as Base de Datos (MySQL)
 
     %% 1. Solicitud inicial HTTP
-    Cliente->>API: POST /api/pedidos (items, clienteId)
+    Cliente->>API: POST /api/pedidos (items, clienteEmail)
     activate API
-    API->>API: Validar y persistir Pedido (Estado: EsperaConfirmacion)
+    API->>DB: Validar y persistir Pedido (Estado: EsperaConfirmacion)
+    DB-->>API: OK
+    API-->>Cliente: HTTP 201 Created (pedidoId, Estado: EsperaConfirmacion)
+    deactivate API
 
-    %% 2. Intento de conexión por Socket con Cocina
-    API->>Cocina: Conectar TCP + enviar datos del pedido
-    activate Cocina
+    %% 2. Transición manual a EnPreparacion
+    Admin->>API: PATCH /api/pedidos/{id}/estado { estado: "EnPreparacion" }
+    activate API
+    API->>DB: Actualizar estado + historial
+    DB-->>API: OK
+    API-->>Admin: HTTP 200 (Estado: EnPreparacion)
+    deactivate API
 
-    alt Flujo normal
-        Cocina-->>API: ACK (recepción exitosa)
-        API->>API: Estado = EnPreparacion
-        API-->>Cliente: HTTP 201 Created (pedidoId, Estado: EnPreparacion)
-        deactivate API
+    %% 3. Transición manual a EnViaje
+    Admin->>API: PATCH /api/pedidos/{id}/estado { estado: "EnViaje" }
+    activate API
+    API->>DB: Actualizar estado + historial
+    DB-->>API: OK
+    API-->>Admin: HTTP 200 (Estado: EnViaje)
+    deactivate API
 
-        Note over Cliente, API: La respuesta HTTP se envía de inmediato.<br/>Los cambios de estado siguientes ocurren<br/>de forma asíncrona vía eventos socket.
-
-        %% 3. Evento asíncrono: Cocina termina
-        Note over Cocina: Hilo secundario simula cocción
-        Cocina->>Cocina: Preparar pizza (delay)
-        Cocina-->>API: Socket → "PedidoPreparado"
-        deactivate Cocina
-
-        API->>API: Estado = EnViaje
-
-        %% 4. Asignación a Reparto
-        API->>Reparto: Conectar TCP + asignar logística
-        activate Reparto
-        Note over Reparto: Hilo secundario simula traslado
-        Reparto->>Reparto: Realizar entrega (delay)
-        Reparto-->>API: Socket → "PedidoEntregado"
-        deactivate Reparto
-        API->>API: Estado = Entregado
-
-    else Flujo de error
-        Cocina--x API: Timeout / Conexión rechazada
-        API->>API: Log error + Estado = Cancelado
-        API-->>Cliente: HTTP 503 (Cocina no disponible)
-        deactivate API
-    end
+    %% 4. Transición manual a Entregado
+    Admin->>API: PATCH /api/pedidos/{id}/estado { estado: "Entregado" }
+    activate API
+    API->>DB: Actualizar estado + historial
+    DB-->>API: OK
+    API-->>Admin: HTTP 200 (Estado: Entregado)
+    deactivate API
 
     %% 5. Consulta de estado (polling HTTP)
     Note over Cliente, API: El cliente consulta el estado actual vía GET
     Cliente->>API: GET /api/pedidos/{id}
     activate API
+    API->>DB: Leer pedido actual
+    DB-->>API: Datos
     API-->>Cliente: HTTP 200 (Estado actual del pedido)
     deactivate API
 ```

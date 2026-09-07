@@ -49,22 +49,23 @@ Plan3.2/
 ├── Docs/                          # Documentación técnica
 │   ├── ArquitecturaDistribuida.md
 │   ├── CasosDeUso.md
+│   ├── EjemploTransicionesHTTP.md
 │   ├── ErroresAsync.md
 │   ├── ExploracionAPI.md
 │   ├── FallosYAcciones.md
-│   ├── FlujoFuncional.md          # Este documento
+│   ├── FlujoFuncional.md
 │   ├── GuiaDefensa.md
-│   ├── GuiaSwagger.md
+│   ├── GuiaScalar.md
 │   ├── IntroduccionDistribuida.md
 │   └── PreRequisitos.md           # Este documento
 ├── Relevamiento.md                # Relevamiento y diseño estructurado
 └── src/
     ├── PizzeriaApp.slnx           # Archivo de solución
     ├── script.sql                 # Script de base de datos
-    ├── Api.Pizzeria/              # Backend (Minimal API + Socket Server)
-    ├── Consola.Cliente/           # Interfaz del cliente (HTTP)
-    ├── Consola.Cocina/            # Servicio de cocina (TCP Socket)
-    └── Consola.Reparto/           # Servicio de reparto (TCP Socket)
+    ├── Api.Pizzeria/              # Backend (Minimal API)
+    ├── Core.Pizzeria/             # Capa de dominio (entidades, DTOs, interfaces)
+    ├── Dapper.Pizzeria/           # Capa de acceso a datos (Dapper + MySQL)
+    └── MVC.Pizzeria/              # Vista web (catálogo estático - no se toca)
 ```
 
 ---
@@ -88,40 +89,15 @@ dotnet restore
 dotnet build
 ```
 
-### Paso 3: Iniciar los servidores Socket (Cocina y Reparto)
-
-Abrir **tres terminales separadas** y ejecutar en cada una:
+### Paso 3: Iniciar la API Backend
 
 ```bash
-# Terminal 1: Cocina
-cd Plan3.2/src
-dotnet run --project Consola.Cocina
-
-# Terminal 2: Reparto
-cd Plan3.2/src
-dotnet run --project Consola.Reparto
-```
-
-> **Importante:** Cocina y Reparto deben estar ejecutándose **antes** de la API, ya que el servidor socket del backend espera conexiones entrantes.
-
-### Paso 4: Iniciar la API Backend
-
-```bash
-# Terminal 3: API
 cd Plan3.2/src
 dotnet run --project Api.Pizzeria
 ```
 
 La API arranca en: `http://localhost:5183`
-Swagger UI disponible en: `http://localhost:5183/swagger`
-
-### Paso 5: Iniciar la aplicación Cliente
-
-```bash
-# Terminal 4: Cliente
-cd Plan3.2/src
-dotnet run --project Consola.Cliente
-```
+Scalar disponible en: `http://localhost:5183/scalar`
 
 ---
 
@@ -129,13 +105,11 @@ dotnet run --project Consola.Cliente
 
 ```
 1. MySQL (debe estar corriendo)
-2. Consola.Cocina  ← Se conecta al puerto 7000
-3. Consola.Reparto ← Se conecta al puerto 7000
-4. Api.Pizzeria    ← Inicia escuchador socket en puerto 7000 + HTTP en 5183
-5. Consola.Cliente ← Se conecta vía HTTP a la API
-```
+2. Api.Pizzeria    ← HTTP en 5183
 
-> **Error común:** Si se inicia la API antes que Cocina/Reparto, el primer pedido fallará con error 503 (Cocina no disponible).
+No hay más procesos: los estados de los pedidos se gestionan por HTTP
+(PATCH /api/pedidos/{id}/estado) directamente contra la API.
+```
 
 ---
 
@@ -143,8 +117,7 @@ dotnet run --project Consola.Cliente
 
 | Servicio | Puerto | Protocolo | Uso |
 |----------|--------|-----------|-----|
-| Api.Pizzeria (HTTP) | 5183 | HTTP | Endpoints REST + Swagger |
-| Socket Server | 7000 | TCP | Comunicación con Cocina y Reparto |
+| Api.Pizzeria (HTTP) | 5183 | HTTP | Endpoints REST + Scalar |
 
 ---
 
@@ -152,8 +125,8 @@ dotnet run --project Consola.Cliente
 
 | Paquete | Versión | Uso |
 |---------|---------|-----|
-| `Microsoft.AspNetCore.OpenApi` | — | Documentación Swagger |
-| `Swashbuckle.AspNetCore` | — | UI de Swagger |
+| `Microsoft.AspNetCore.OpenApi` | — | Documentación Scalar |
+| `Scalar.AspNetCore` | — | UI de Scalar |
 | `MySqlConnector` | — | Conector MySQL para .NET |
 | `Dapper` | — | ORM ligero para queries SQL |
 | `FluentValidation` | — | Validación de DTOs |
@@ -165,11 +138,6 @@ dotnet run --project Consola.Cliente
 ### "No se pudo conectar a la API"
 - Verificar que `Api.Pizzeria` esté corriendo
 - Verificar que el puerto 5183 no esté ocupado
-
-### "Cocina no disponible (503)"
-- Verificar que `Consola.Cocina` esté corriendo
-- Verificar que el puerto 7000 no esté ocupado
-- El socket server del backend debe aceptar conexiones entrantes
 
 ### "Error de conexión a MySQL"
 - Verificar que MySQL esté corriendo en el puerto 3306

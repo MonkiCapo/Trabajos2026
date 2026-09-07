@@ -7,7 +7,7 @@
 
 ## 1. Introducción
 
-En un sistema distribuido como PizzeriaAPI, las operaciones de red (HTTP, Sockets TCP) son inherentemente asíncronas. C# proporciona `async`/`await` para trabajar con operaciones no bloqueantes, pero el manejo de errores en este contexto tiene particularidades que deben tenerse en cuenta.
+En PizzeriaAPI, las operaciones de red (HTTP) son inherentemente asíncronas. C# proporciona `async`/`await` para trabajar con operaciones no bloqueantes, pero el manejo de errores en este contexto tiene particularidades que deben tenerse en cuenta.
 
 ---
 
@@ -25,7 +25,7 @@ public async Task<PedidoResponse> CrearPedidoAsync(PedidoRequest request)
     try
     {
         HttpResponseMessage response = await httpClient.PostAsync(
-            "http://localhost:5000/api/pedidos", content);
+            "http://localhost:5183/api/pedidos", content);
 
         response.EnsureSuccessStatusCode();
 
@@ -58,156 +58,75 @@ public async Task<PedidoResponse> CrearPedidoAsync(PedidoRequest request)
 
 ---
 
-### 2.2 Conexión por Socket TCP (Backend → Cocina)
+### 2.2 Llamada HTTP con timeout explícito (CancellationToken)
 
 ```csharp
-public async Task<bool> EnviarPedidoACocinaAsync(Pedido pedido, int timeoutSegundos = 5)
+public async Task<Pedido> ConsultarPedidoAsync(int pedidoId, CancellationToken ct = default)
 {
-    using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    using var httpClient = new HttpClient
+    {
+        BaseAddress = new Uri("http://localhost:5183")
+    };
+
+    using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
+    cts.CancelAfter(TimeSpan.FromSeconds(5));
 
     try
     {
-        var connectTask = socket.ConnectAsync("localhost", 7000);
-        if (await Task.WhenAny(connectTask, Task.Delay(timeoutSegundos * 1000)) == connectTask)
-        {
-            await connectTask; // Propagar excepción si la conexión falló
-
-            string mensaje = JsonSerializer.Serialize(new
-            {
-                accion = "nuevo_pedido",
-                pedidoId = pedido.Id,
-                items = pedido.Items
-            });
-
-            byte[] data = Encoding.UTF8.GetBytes(mensaje + "\n");
-            await socket.SendAsync(data, SocketFlags.None);
-
-            // Esperar ACK
-            byte[] buffer = new byte[1024];
-            int recibidos = await socket.ReceiveAsync(buffer, SocketFlags.None);
-            string respuesta = Encoding.UTF8.GetString(buffer, 0, recibidos);
-
-            return respuesta.Contains("ack");
-        }
-        else
-        {
-            Console.WriteLine($"[TIMEOUT] Cocina no respondio en {timeoutSegundos}s");
-            return false;
-        }
-    }
-    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-    {
-        Console.WriteLine("[ERROR] Conexion rechazada por Cocina");
-        return false;
-    }
-    catch (SocketException ex)
-    {
-        Console.WriteLine($"[ERROR] Socket: {ex.SocketErrorCode} - {ex.Message}");
-        return false;
+        return await httpClient.GetFromJsonAsync<Pedido>($"/api/pedidos/{pedidoId}", cts.Token)
+            ?? throw new RecursoNoEncontradoException($"Pedido {pedidoId} no encontrado");
     }
     catch (OperationCanceledException)
     {
-        Console.WriteLine("[ERROR] Operacion cancelada");
-        return false;
+        Console.WriteLine("[TIMEOUT] El servidor no respondio a tiempo");
+        throw new ServicioNoDisponibleException("El servidor no respondio a tiempo");
     }
-}
-```
-
-**Análisis de buenas prácticas:**
-- ✅ Uso de `Task.WhenAny` para implementar timeout manual sobre `ConnectAsync`.
-- ✅ Filtros de excepción (`when`) para tratar distintos errores de socket.
-- ✅ `Socket` envuelto en `using` para liberar recursos.
-- ❌ **Mejorable:** El timeout con `Task.Delay` deja una tareas huérfanas (no se cancelan). Versión mejorada abajo.
-
----
-
-### 2.3 Versión mejorada con CancellationToken
-
-```csharp
-public async Task<bool> EnviarPedidoACocinaAsync(Pedido pedido, CancellationToken ct = default)
-{
-    using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-
-    try
+    catch (HttpRequestException ex)
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(5));
-
-        await socket.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 7000), cts.Token);
-
-        string mensaje = JsonSerializer.Serialize(new
-        {
-            accion = "nuevo_pedido",
-            pedidoId = pedido.Id,
-            items = pedido.Items
-        });
-
-        byte[] data = Encoding.UTF8.GetBytes(mensaje + "\n");
-        await socket.SendAsync(data, SocketFlags.None, cts.Token);
-
-        byte[] buffer = new byte[1024];
-        int recibidos = await socket.ReceiveAsync(buffer, SocketFlags.None, cts.Token);
-        string respuesta = Encoding.UTF8.GetString(buffer, 0, recibidos);
-
-        return respuesta.Contains("ack");
-    }
-    catch (OperationCanceledException)
-    {
-        Console.WriteLine("[TIMEOUT] Cocina no respondio a tiempo");
-        return false;
-    }
-    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
-    {
-        Console.WriteLine("[ERROR] Cocina rechazo la conexion");
-        return false;
+        Console.WriteLine($"[ERROR] Fallo de red: {ex.Message}");
+        throw new ServicioNoDisponibleException("No se pudo contactar al servidor");
     }
 }
 ```
 
 **Mejoras:**
-- ✅ `CancellationTokenSource` con `CancelAfter()` reemplaza el `Task.WhenAny` manual.
-- ✅ Se cancela correctamente la tarea de conexión si expira el plazo.
-- ✅ Se usa `CreateLinkedTokenSource` para permitir cancelación externa.
+- ✅ `CancellationTokenSource.CreateLinkedTokenSource` + `CancelAfter()` implementa timeout sobre cualquier operación HTTP.
+- ✅ Se cancela correctamente la tarea si expira el plazo.
+- ✅ El `HttpClient` se crea con `BaseAddress` para no repetir la URL.
 
 ---
 
-## 3. Escenario: Fallo simulado de red
+## 3. Patrones en el servicio de dominio (PedidoService)
+
+### 3.1 Crear pedido con transacción y propagación de errores
 
 ```csharp
-// Simulación de fallo para pruebas
-public static async Task SimularFalloDeRed()
+public async Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido)
 {
-    Console.WriteLine("Simulando corte de red...");
+    using var conexion = _ado.GetDbConnection();
+    conexion.Open();
+    using var transaction = conexion.BeginTransaction();
 
     try
     {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        // Intentar conectar a un puerto que no existe
-        await socket.ConnectAsync("localhost", 9999);
+        // validar y persistir...
+        transaction.Commit();
     }
-    catch (SocketException ex)
+    catch (Exception ex)
     {
-        Console.WriteLine($"Fallo capturado: {ex.SocketErrorCode}");
-        Console.WriteLine($"Mensaje: {ex.Message}");
-
-        switch (ex.SocketErrorCode)
-        {
-            case SocketError.ConnectionRefused:
-                Console.WriteLine("Accion: Reintentar mas tarde");
-                break;
-            case SocketError.TimedOut:
-                Console.WriteLine("Accion: Cancelar pedido");
-                break;
-            case SocketError.HostUnreachable:
-                Console.WriteLine("Accion: Verificar conectividad de red");
-                break;
-            default:
-                Console.WriteLine("Accion: Error desconocido, loguear y escalar");
-                break;
-        }
+        transaction.Rollback();
+        _logger.LogError(ex, "Error al crear pedido.");
+        throw;
     }
+
+    return nuevoPedido;
 }
 ```
+
+**Análisis:**
+- ✅ `using` / `using var` garantiza que la conexión y la transacción se liberen.
+- ✅ `Rollback()` revierte la transacción ante cualquier error.
+- ✅ Se registra el error y se **relanza** la excepción original para que el endpoint responda el status correcto (400/500).
 
 ---
 
@@ -217,19 +136,19 @@ public static async Task SimularFalloDeRed()
 |----------|-------------|
 | **Usar CancellationToken** | Siempre pasar `CancellationToken` a operaciones async de red para poder cancelarlas. |
 | **Timeouts explícitos** | No confiar en timeouts por defecto; establecerlos siempre (`CancelAfter`, `Task.WhenAny`). |
-| **Capturar excepciones específicas** | Preferir `SocketException`, `HttpRequestException`, `TaskCanceledException` sobre `Exception` genérico. |
-| **Filtros de excepción (`when`)** | Permite switchear sobre `SocketErrorCode` sin anidar catch. |
+| **Capturar excepciones específicas** | Preferir `HttpRequestException`, `TaskCanceledException`, `JsonException` sobre `Exception` genérico. |
+| **Filtros de excepción (`when`)** | Permite tratar distintos casos sin anidar catch. |
 | **Log antes de relanzar** | Registrar el error en el punto de captura antes de propagar hacia arriba. |
 | **No mezclar sync con async** | Evitar `.Result` o `.Wait()`; usar `await` en toda la cadena. |
-| **`using` en recursos IDisposable** | `Socket`, `HttpClient`, `CancellationTokenSource` deben liberarse. |
+| **`using` en recursos IDisposable** | `HttpClient`, conexiones y transacciones deben liberarse. |
 
 ---
 
 ## 5. Conclusión
 
-El manejo de errores asincrónicos en C# para sistemas distribuidos se basa en tres pilares:
+El manejo de errores asincrónicos en C# para una API REST se basa en tres pilares:
 1. **`async`/`await`** para no bloquear hilos mientras se espera la red.
 2. **`try/catch` con excepciones específicas** para distinguir tipos de fallo.
 3. **`CancellationToken`** para implementar timeouts y cancelación graceful.
 
-Estos patrones permiten que PizzeriaAPI responda adecuadamente ante fallos de red, timeouts y servicios caídos, manteniendo la consistencia del sistema mediante la máquina de estados y los logs de error.
+Estos patrones permiten que PizzeriaAPI responda adecuadamente ante fallos de red, timeouts y errores de datos, manteniendo la consistencia del sistema mediante la máquina de estados y el historial de cambios.

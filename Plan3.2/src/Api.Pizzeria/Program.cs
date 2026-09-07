@@ -9,8 +9,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Scalar.AspNetCore;
 using Api.Pizzeria.Data;
-using Api.Pizzeria.Sockets;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
@@ -47,32 +47,23 @@ builder.Services.AddScoped<IPizzaRepositorio, PizzaRepositorio>();
 // Inicializar base de datos usando script.sql
 DbInitializer.Initialize(connectionString);
 
-// Registrar servidor de Sockets como Singleton Hosted Service
-builder.Services.AddSingleton<SocketServer>();
-builder.Services.AddSingleton<ISocketServer>(sp => sp.GetRequiredService<SocketServer>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<SocketServer>());
-
 // Registrar servicios de negocio
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
 // Registrar validadores de FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-// Registrar Swagger
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "PizzeriaAPI", Version = "v1" });
-});
+// Registrar OpenAPI (documentación para Scalar)
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-// Habilitar Swagger en modo Desarrollo
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+// Documentación de la API con Scalar
+app.MapOpenApi();
+app.MapScalarApiReference(options =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PizzeriaAPI v1");
-    c.RoutePrefix = "swagger";
+    options.WithTitle("PizzeriaAPI");
+    options.WithDefaultHttpClient(ScalarTarget.CSharp, ScalarClient.HttpClient);
 });
 
 // Endpoints
@@ -171,16 +162,6 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
     {
         return Results.BadRequest(new { error = "Datos invalidos", detalles = ex.Message });
     }
-    catch (CocinaNoDisponibleException ex)
-    {
-        logger.LogWarning("[API] Pedido {Id} cancelado porque Cocina no está disponible.", ex.PedidoId);
-        return Results.Json(new
-        {
-            error = "Servicio de cocina no disponible en este momento",
-            pedidoId = ex.PedidoId,
-            codigo = "COCINA_NO_DISPONIBLE"
-        }, statusCode: StatusCodes.Status503ServiceUnavailable);
-    }
     catch (Exception ex)
     {
         logger.LogError(ex, "[API] Error inesperado al crear pedido.");
@@ -221,6 +202,32 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ICl
     catch (Exception ex)
     {
         logger.LogError(ex, "[API] Error al obtener pedido {Id}.", id);
+        return Results.StatusCode(StatusCodes.Status500InternalServerError);
+    }
+});
+
+// 5. PATCH /api/pedidos/{id}/estado (Transición manual de estado por HTTP)
+// Este endpoint permite avanzar manualmente el estado de un pedido vía HTTP:
+//   Ejemplo: PATCH /api/pedidos/1/estado  body: { "estado": "EnPreparacion", "observacion": "..." }
+//   Estados válidos: EnPreparacion, EnViaje, Entregado, Cancelado
+app.MapPatch("/api/pedidos/{id}/estado", async (int id, ActualizarEstadoRequest request, IPedidoService pedidoService, ILogger<Program> logger) =>
+{
+    try
+    {
+        var pedido = await pedidoService.GetPedidoByIdAsync(id);
+        if (pedido == null)
+        {
+            return Results.NotFound();
+        }
+
+        await pedidoService.ActualizarEstadoAsync(id, request.Estado, request.Observacion);
+
+        logger.LogInformation("[API] Pedido {Id} transicionado a {Estado}.", id, request.Estado);
+        return Results.Ok(new { pedidoId = id, estado = request.Estado });
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "[API] Error al transicionar el estado del pedido {Id}.", id);
         return Results.StatusCode(StatusCodes.Status500InternalServerError);
     }
 });

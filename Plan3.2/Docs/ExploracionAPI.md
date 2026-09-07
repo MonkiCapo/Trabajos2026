@@ -12,11 +12,12 @@
 | `POST` | `/api/clientes` | Registrar un nuevo cliente (con email) | `201 Created`, `400 Bad Request` |
 | `GET` | `/api/clientes/{id}` | Obtener datos de un cliente por ID | `200 OK`, `404 Not Found` |
 | `GET` | `/api/clientes/email/{email}` | Obtener datos de un cliente por email | `200 OK`, `404 Not Found` |
-| `POST` | `/api/pedidos` | Crear un nuevo pedido (por email del cliente y nombre de pizza) | `201 Created`, `400 Bad Request`, `503 Service Unavailable` |
+| `POST` | `/api/pedidos` | Crear un nuevo pedido (por email del cliente y nombre de pizza) | `201 Created`, `400 Bad Request` |
 | `GET` | `/api/pedidos/{id}` | Consultar estado de un pedido | `200 OK`, `404 Not Found` |
+| `PATCH` | `/api/pedidos/{id}/estado` | Transicionar el estado de un pedido | `200 OK`, `400 Bad Request`, `404 Not Found` |
 | `GET` | `/api/pizzas` | Listar catalogo de pizzas disponibles | `200 OK` |
 
-> **Swagger UI:** Disponible en `http://localhost:5183/swagger` cuando la API esta corriendo.
+> **Scalar:** Disponible en `http://localhost:5183/scalar` cuando la API esta corriendo.
 
 ---
 
@@ -93,26 +94,35 @@ curl -X POST http://localhost:5183/api/pedidos \
   }'
 ```
 
-**Response (201) - Flujo normal:**
+**Response (201) - Pedido creado:**
 ```json
 {
   "pedidoId": 42,
-  "estado": "EnPreparacion",
+  "estado": "EsperaConfirmacion",
   "total": 3900.00,
   "fechaCreacion": "2026-07-13T20:30:00Z"
 }
 ```
 
-**Response (503) - Cocina no disponible:**
+### 2.5 Transicionar el Estado de un Pedido (PATCH)
+
+```bash
+curl -X PATCH http://localhost:5183/api/pedidos/42/estado \
+  -H "Content-Type: application/json" \
+  -d '{ "estado": "EnPreparacion", "observacion": "Cocina aceptó el pedido" }'
+```
+
+**Response (200):**
 ```json
 {
-  "error": "Servicio de cocina no disponible en este momento",
   "pedidoId": 42,
-  "codigo": "COCINA_NO_DISPONIBLE"
+  "estado": "EnPreparacion"
 }
 ```
 
-### 2.5 Consultar Estado del Pedido
+> El estado se puede avanzar en orden: `EnPreparacion` → `EnViaje` → `Entregado`, o cancelar con `Cancelado`.
+
+### 2.6 Consultar Estado del Pedido
 
 ```bash
 curl http://localhost:5183/api/pedidos/42
@@ -138,7 +148,7 @@ curl http://localhost:5183/api/pedidos/42
 }
 ```
 
-### 2.6 Datos Invalidos (400 Bad Request - FluentValidation)
+### 2.7 Datos Invalidos (400 Bad Request - FluentValidation)
 
 ```bash
 curl -X POST http://localhost:5183/api/pedidos \
@@ -174,6 +184,7 @@ curl -X POST http://localhost:5183/api/pedidos \
    | Listar Pizzas | GET | `{{base_url}}/api/pizzas` | - |
     | Crear Pedido | POST | `{{base_url}}/api/pedidos` | `{ "clienteEmail": "juan@email.com", "items": [{ "pizzaNombre": "Pizza Muzzarella", "cantidad": 2 }] }` |
    | Consultar Pedido | GET | `{{base_url}}/api/pedidos/42` | - |
+   | Transicionar Estado | PATCH | `{{base_url}}/api/pedidos/42/estado` | `{ "estado": "EnPreparacion", "observacion": "..." }` |
 
 ---
 
@@ -185,7 +196,6 @@ curl -X POST http://localhost:5183/api/pedidos \
 | `201 Created` | El recurso se creo correctamente. | POST /pedidos, POST /clientes |
 | `400 Bad Request` | El payload enviado no es valido (FluentValidation). | Validacion de esquema falla. |
 | `404 Not Found` | El recurso solicitado no existe. | GET /pedidos/9999 |
-| `503 Service Unavailable` | Un servicio interno no esta disponible. | Timeout con Cocina. |
 | `500 Internal Server Error` | Error inesperado del servidor. | Excepcion no controlada. |
 
 ---
