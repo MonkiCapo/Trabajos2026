@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Core.Pizzeria\Core.Pizzeria.csproj" />
     <ProjectReference Include="..\Dapper.Pizzeria\Dapper.Pizzeria.csproj" />
+    <ProjectReference Include="..\Services.Pizzeria\Services.Pizzeria.csproj" />
   </ItemGroup>
 
 </Project>

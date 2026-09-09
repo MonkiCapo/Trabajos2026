@@ -80,7 +80,7 @@ public class PedidoService : IPedidoService
 
             // 5. Insertar HISTORIAL
             await _pedidoRepo.CrearHistorialAsync(pedidoId, EstadoPedido.EsperaConfirmacion, 
-                "Creación de pedido. Esperando confirmación de cocina.", conexion, transaction);
+                "Creación de pedido", conexion, transaction);
 
             transaction.Commit();
         }

@@ -132,6 +132,19 @@
         "runtime": {
           "bin/placeholder/Dapper.Pizzeria.dll": {}
         }
+      },
+      "Services.Pizzeria/1.0.0": {
+        "type": "project",
+        "framework": ".NETCoreApp,Version=v10.0",
+        "dependencies": {
+          "Core.Pizzeria": "1.0.0"
+        },
+        "compile": {
+          "bin/placeholder/Services.Pizzeria.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/Services.Pizzeria.dll": {}
+        }
       }
     }
   },
@@ -282,6 +295,11 @@
       "type": "project",
       "path": "../Dapper.Pizzeria/Dapper.Pizzeria.csproj",
       "msbuildProject": "../Dapper.Pizzeria/Dapper.Pizzeria.csproj"
+    },
+    "Services.Pizzeria/1.0.0": {
+      "type": "project",
+      "path": "../Services.Pizzeria/Services.Pizzeria.csproj",
+      "msbuildProject": "../Services.Pizzeria/Services.Pizzeria.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -290,40 +308,43 @@
       "Dapper.Pizzeria >= 1.0.0",
       "FluentValidation.DependencyInjectionExtensions >= 12.1.1",
       "Microsoft.AspNetCore.OpenApi >= 10.0.11",
-      "Scalar.AspNetCore >= 2.17.3"
+      "Scalar.AspNetCore >= 2.17.3",
+      "Services.Pizzeria >= 1.0.0"
     ]
   },
   "packageFolders": {
-    "/home/et12alumno/.nuget/packages/": {}
+    "C:\\Users\\Noxie-PC\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj",
+      "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj",
       "projectName": "Api.Pizzeria",
-      "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj",
-      "packagesPath": "/home/et12alumno/.nuget/packages/",
-      "outputPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/",
+      "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj",
+      "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "/home/et12alumno/.nuget/NuGet/NuGet.Config"
+        "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net10.0"
       ],
       "sources": {
-        "/usr/lib/dotnet/library-packs": {},
         "https://api.nuget.org/v3/index.json": {}
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
           "projectReferences": {
-            "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
-              "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj"
+            "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj": {
+              "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj"
             },
-            "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj": {
-              "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj"
+            "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj": {
+              "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj"
+            },
+            "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj": {
+              "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj"
             }
           }
         }
@@ -338,7 +359,7 @@
         "auditLevel": "low",
         "auditMode": "all"
       },
-      "SdkAnalysisLevel": "10.0.100"
+      "SdkAnalysisLevel": "10.0.200"
     },
     "frameworks": {
       "net10.0": {
@@ -376,7 +397,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.108/PortableRuntimeIdentifierGraph.json",
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
         "packagesToPrune": {
           "Microsoft.AspNetCore": "(,10.0.32767]",
           "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",

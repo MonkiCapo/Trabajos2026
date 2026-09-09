@@ -3,4 +3,5 @@
   <Project Path="Core.Pizzeria/Core.Pizzeria.csproj" />
   <Project Path="Dapper.Pizzeria/Dapper.Pizzeria.csproj" />
   <Project Path="MVC.Pizzeria/MVC.Pizzeria.csproj" />
+  <Project Path="Services.Pizzeria/Services.Pizzeria.csproj" />
 </Solution>

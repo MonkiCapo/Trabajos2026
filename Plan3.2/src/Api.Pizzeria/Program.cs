@@ -206,9 +206,7 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ICl
     }
 });
 
-// 5. PATCH /api/pedidos/{id}/estado (Transición manual de estado por HTTP)
-// Este endpoint permite avanzar manualmente el estado de un pedido vía HTTP:
-//   Ejemplo: PATCH /api/pedidos/1/estado  body: { "estado": "EnPreparacion", "observacion": "..." }
+//   Ejemplo: PATCH /api/pedidos/1/estado  body: { "estado": "EnPreparacion", "observacion": "..." } (Para avanzar estados del pedido)
 //   Estados válidos: EnPreparacion, EnViaje, Entregado, Cancelado
 app.MapPatch("/api/pedidos/{id}/estado", async (int id, ActualizarEstadoRequest request, IPedidoService pedidoService, ILogger<Program> logger) =>
 {
