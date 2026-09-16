@@ -1,7 +1,7 @@
 using FluentValidation;
 using Core.Pizzeria.DTOs;
 
-namespace Api.Pizzeria.Validations;
+namespace Services.Pizzeria.Validations;
 
 public class PedidoRequestValidator : AbstractValidator<PedidoRequest>
 {

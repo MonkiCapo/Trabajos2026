@@ -17,7 +17,8 @@ using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
 using Core.Pizzeria.Servicios.IRepositorios;
 using Dapper.Pizzeria;
-using Api.Pizzeria.Services;
+using Services.Pizzeria.Services;
+using Services.Pizzeria.Validations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -51,7 +52,7 @@ DbInitializer.Initialize(connectionString);
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
 // Registrar validadores de FluentValidation
-builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+builder.Services.AddValidatorsFromAssemblyContaining<PedidoRequestValidator>();
 
 // Registrar OpenAPI (documentación para Scalar)
 builder.Services.AddOpenApi();

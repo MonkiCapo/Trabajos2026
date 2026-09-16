@@ -9,7 +9,7 @@ using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
 using Core.Pizzeria.Servicios.IRepositorios;
 
-namespace Api.Pizzeria.Services;
+namespace Services.Pizzeria.Services;
 
 public class PedidoService : IPedidoService
 {

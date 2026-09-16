@@ -68,12 +68,16 @@ C:/Users/Noxie-PC/Desktop/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Dapper.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/FluentValidation.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/FluentValidation.DependencyInjectionExtensions.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Microsoft.AspNetCore.OpenApi.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Microsoft.OpenApi.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/MySqlConnector.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Scalar.AspNetCore.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Core.Pizzeria.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Dapper.Pizzeria.dll
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Services.Pizzeria.dll
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Core.Pizzeria.pdb
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Dapper.Pizzeria.pdb
+/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Services.Pizzeria.pdb
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.csproj.AssemblyReference.cache
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/rpswa.dswa.cache.json
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.GeneratedMSBuildEditorConfig.editorconfig
@@ -98,8 +102,3 @@ C:/Users/Noxie-PC/Desktop/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.pdb
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/Api.Pizzeria.genruntimeconfig.cache
 /home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/Debug/net10.0/ref/Api.Pizzeria.dll
-/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Microsoft.AspNetCore.OpenApi.dll
-/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/bin/Debug/net10.0/Scalar.AspNetCore.dll
-C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Api.Pizzeria\obj\Debug\net10.0\Api.Pizzeria.dll
-C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Api.Pizzeria\obj\Debug\net10.0\refint\Api.Pizzeria.dll
-C:\Users\Noxie-PC\Desktop\Trabajos2026\Plan3.2\src\Api.Pizzeria\obj\Debug\net10.0\Api.Pizzeria.pdb

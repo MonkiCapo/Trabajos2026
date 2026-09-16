@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS PIZZA (
     nombre VARCHAR(100) NOT NULL,
     tamanio VARCHAR(50) NOT NULL,
     precio DECIMAL(10,2) NOT NULL,
-    descripcion TEXT
+    ingredientes TEXT
 );
 
 -- 3. INGREDIENTE
@@ -86,10 +86,10 @@ INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (4, 'Entregado', 4);
 INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (5, 'Cancelado', 5);
 
 -- Pizzas
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (1, 'Pizza Pepperoni', 'Grande', 1500.00, 'Queso muzzarella, salsa de tomate y abundante pepperoni.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 1400.00, 'Queso muzzarella, jamón cocido y aceitunas.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (3, 'Pizza Muzzarella', 'Grande', 1200.00, 'Doble queso muzzarella, salsa de tomate y orégano.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (4, 'Pizza Napolitana', 'Grande', 1300.00, 'Queso muzzarella, rodajas de tomate, ajo y albahaca fresco.');
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (1, 'Pizza Pepperoni', 'Grande', 1500.00, 'Queso muzzarella, salsa de tomate y abundante pepperoni.');
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 1400.00, 'Queso muzzarella, jamón cocido y aceitunas.');
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (3, 'Pizza Muzzarella', 'Grande', 1200.00, 'Doble queso muzzarella, salsa de tomate y orégano.');
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (4, 'Pizza Napolitana', 'Grande', 1300.00, 'Queso muzzarella, rodajas de tomate, ajo y albahaca fresco.');
 
 -- Ingredientes
 INSERT IGNORE INTO INGREDIENTE (id, nombre) VALUES (1, 'Muzzarella');

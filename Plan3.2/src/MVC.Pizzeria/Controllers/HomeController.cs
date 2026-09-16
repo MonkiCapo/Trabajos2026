@@ -21,7 +21,6 @@ public class HomeController : Controller
                 Nombre = "Pizza Jamón y Queso",
                 Tamanio = "Grande",
                 Precio = 1400.00m,
-                Descripcion = "Queso muzzarella, jamón cocido y aceitunas.",
                 Ingredientes = new List<string> { "Muzzarella", "Jamón cocido", "Salsa de tomate", "Aceitunas" }
             },
             new PizzaViewModel
@@ -30,7 +29,6 @@ public class HomeController : Controller
                 Nombre = "Pizza Muzzarella",
                 Tamanio = "Grande",
                 Precio = 1200.00m,
-                Descripcion = "Doble queso muzzarella, salsa de tomate y orégano.",
                 Ingredientes = new List<string> { "Muzzarella", "Salsa de tomate", "Orégano", "Aceitunas" }
             },
             new PizzaViewModel
@@ -39,7 +37,6 @@ public class HomeController : Controller
                 Nombre = "Pizza Napolitana",
                 Tamanio = "Grande",
                 Precio = 1300.00m,
-                Descripcion = "Queso muzzarella, rodajas de tomate, ajo y albahaca fresca.",
                 Ingredientes = new List<string> { "Muzzarella", "Salsa de tomate", "Tomate en rodajas", "Ajo", "Albahaca" }
             }
         };

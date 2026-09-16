@@ -11,13 +11,13 @@ public class PizzaRepositorio : DapperRepo, IPizzaRepositorio
 
     public async Task<IEnumerable<Pizza>> ObtenerPizzasAsync()
     {
-        var sql = "SELECT id, nombre, tamanio, precio, descripcion FROM PIZZA;";
+        var sql = "SELECT id, nombre, tamanio, precio, ingredientes FROM PIZZA;";
         return await Conexion.QueryAsync<Pizza>(sql);
     }
 
     public async Task<Pizza?> ObtenerPizzaPorNombreAsync(string nombre)
     {
-        var sql = "SELECT id, nombre, tamanio, precio, descripcion FROM PIZZA WHERE nombre = @Nombre;";
+        var sql = "SELECT id, nombre, tamanio, precio, ingredientes FROM PIZZA WHERE nombre = @Nombre;";
         return await Conexion.QueryFirstOrDefaultAsync<Pizza>(sql, new { Nombre = nombre });
     }
 }

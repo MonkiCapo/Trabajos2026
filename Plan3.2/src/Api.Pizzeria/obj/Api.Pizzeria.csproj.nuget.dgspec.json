@@ -1,39 +1,40 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj": {}
+    "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj": {}
   },
   "projects": {
-    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj": {
+    "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj",
+        "projectUniqueName": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj",
         "projectName": "Api.Pizzeria",
-        "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\Api.Pizzeria.csproj",
-        "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Api.Pizzeria\\obj\\",
+        "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/Api.Pizzeria.csproj",
+        "packagesPath": "/home/et12alumno/.nuget/packages/",
+        "outputPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Api.Pizzeria/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/et12alumno/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj": {
-                "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj"
+              "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
+                "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj"
               },
-              "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj": {
-                "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj"
+              "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj": {
+                "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj"
               },
-              "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj": {
-                "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj"
+              "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/Services.Pizzeria.csproj": {
+                "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/Services.Pizzeria.csproj"
               }
             }
           }
@@ -48,7 +49,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
@@ -86,7 +87,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.112/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -504,22 +505,23 @@
         }
       }
     },
-    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj": {
+    "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj",
+        "projectUniqueName": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj",
         "projectName": "Core.Pizzeria",
-        "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj",
-        "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\obj\\",
+        "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj",
+        "packagesPath": "/home/et12alumno/.nuget/packages/",
+        "outputPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/et12alumno/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
@@ -538,7 +540,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
@@ -559,7 +561,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.112/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -837,30 +839,31 @@
         }
       }
     },
-    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj": {
+    "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj",
+        "projectUniqueName": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj",
         "projectName": "Dapper.Pizzeria",
-        "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\Dapper.Pizzeria.csproj",
-        "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Dapper.Pizzeria\\obj\\",
+        "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/Dapper.Pizzeria.csproj",
+        "packagesPath": "/home/et12alumno/.nuget/packages/",
+        "outputPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Dapper.Pizzeria/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/et12alumno/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj": {
-                "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj"
+              "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
+                "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj"
               }
             }
           }
@@ -875,7 +878,7 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
@@ -906,7 +909,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.112/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
@@ -1184,30 +1187,31 @@
         }
       }
     },
-    "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj": {
+    "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/Services.Pizzeria.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj",
+        "projectUniqueName": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/Services.Pizzeria.csproj",
         "projectName": "Services.Pizzeria",
-        "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\Services.Pizzeria.csproj",
-        "packagesPath": "C:\\Users\\Noxie-PC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Services.Pizzeria\\obj\\",
+        "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/Services.Pizzeria.csproj",
+        "packagesPath": "/home/et12alumno/.nuget/packages/",
+        "outputPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Services.Pizzeria/obj/",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\Noxie-PC\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "/home/et12alumno/.nuget/NuGet/NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0"
         ],
         "sources": {
+          "/usr/lib/dotnet/library-packs": {},
           "https://api.nuget.org/v3/index.json": {}
         },
         "frameworks": {
           "net10.0": {
             "targetAlias": "net10.0",
             "projectReferences": {
-              "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj": {
-                "projectPath": "C:\\Users\\Noxie-PC\\Desktop\\Trabajos2026\\Plan3.2\\src\\Core.Pizzeria\\Core.Pizzeria.csproj"
+              "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj": {
+                "projectPath": "/home/et12alumno/Escritorio/Trabajos2026/Plan3.2/src/Core.Pizzeria/Core.Pizzeria.csproj"
               }
             }
           }
@@ -1222,12 +1226,16 @@
           "auditLevel": "low",
           "auditMode": "all"
         },
-        "SdkAnalysisLevel": "10.0.200"
+        "SdkAnalysisLevel": "10.0.100"
       },
       "frameworks": {
         "net10.0": {
           "targetAlias": "net10.0",
           "dependencies": {
+            "FluentValidation": {
+              "target": "Package",
+              "version": "[12.1.1, )"
+            },
             "Microsoft.Extensions.Logging.Abstractions": {
               "target": "Package",
               "version": "[10.0.0, )"
@@ -1249,7 +1257,7 @@
               "privateAssets": "all"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.201/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "/usr/lib/dotnet/sdk/10.0.112/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.CSharp": "(,4.7.32767]",
             "Microsoft.VisualBasic": "(,10.4.32767]",
