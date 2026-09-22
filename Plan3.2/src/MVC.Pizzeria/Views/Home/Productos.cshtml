@@ -15,18 +15,30 @@
     @foreach (var pizza in Model)
     {
         <div class="col-md-6 col-lg-3">
-            <div class="product-card">
-                <div class="product-header d-flex justify-content-between align-items-center">
-                    <h5 class="product-title">@pizza.Nombre</h5>
-                    <span class="product-badge">@pizza.Tamanio</span>
+            <div class="product-card h-100 shadow-sm border rounded overflow-hidden">
+                <!-- AGREGAMOS LA IMAGEN AQUÍ -->
+                <div class="product-image-container" style="height: 200px; overflow: hidden;">
+                    <img src="@pizza.ImagenUrl" class="w-100 h-100 object-fit-cover" alt="@pizza.Nombre" 
+                         onerror="this.src='/images/pizza-generica.jpg';"> 
+                     @* El onerror es un truco por si no encuentra la imagen específica *@
                 </div>
-                <div class="product-body">
-                    <div class="mb-3">
-                        <span class="d-block text-muted small fw-bold mb-1">Ingredientes:</span>
-                        @foreach (var ing in pizza.Ingredientes)
-                        {
-                            <span class="ingredient-badge">@ing</span>
-                        }
+
+                <div class="p-3">
+                    <div class="product-header d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="product-title mb-0 fw-bold">@pizza.Nombre</h5>
+                        <span class="badge bg-secondary">@pizza.Tamanio</span>
+                    </div>
+                    <div class="product-body">
+                        <div class="mb-3">
+                            <span class="d-block text-muted small fw-bold mb-1">Ingredientes:</span>
+                            @foreach (var ing in pizza.Ingredientes) @* Volvemos a Mayúscula porque usamos el VM *@
+                            {
+                                <span class="badge bg-light text-dark border me-1">@ing</span>
+                            }
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="fw-bold text-success fs-5">$@pizza.Precio</span>
+                        </div>
                     </div>
                 </div>
             </div>
