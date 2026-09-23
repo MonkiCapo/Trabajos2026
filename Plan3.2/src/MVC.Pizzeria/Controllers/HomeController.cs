@@ -18,10 +18,10 @@ public class HomeController : Controller
         // Aca creo las pizzas con los atributos originales.
         var pizzasDelCore = new List<Pizza>
         {
-            new Pizza { Id = 1, Nombre = "Pizza Pepperoni", Tamanio = "Grande", Precio = 1500.00m, Ingredientes = new() { "Muzzarella", "Pepperoni", "Salsa de tomate" } },
-            new Pizza { Id = 2, Nombre = "Pizza Jamón y Queso", Tamanio = "Grande", Precio = 1400.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate",  } },
-            new Pizza { Id = 3, Nombre = "Pizza Muzzarella", Tamanio = "Grande", Precio = 1200.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Orégano" } },
-            new Pizza { Id = 4, Nombre = "Pizza Napolitana", Tamanio = "Grande", Precio = 1300.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Tomate en rodajas", "Ajo" } }
+            new Pizza { Id = 1, Nombre = "Pizza Pepperoni", Tamanio = "Grande", Precio = 5500.00m, Ingredientes = new() { "Muzzarella", "Pepperoni", "Salsa de tomate" } },
+            new Pizza { Id = 2, Nombre = "Pizza Jamón y Queso", Tamanio = "Grande", Precio = 4400.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate",  } },
+            new Pizza { Id = 3, Nombre = "Pizza Muzzarella", Tamanio = "Grande", Precio = 5200.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Orégano" } },
+            new Pizza { Id = 4, Nombre = "Pizza Napolitana", Tamanio = "Grande", Precio = 3500.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Tomate en rodajas", "Ajo" } }
         };
 
         var listaViewModel = pizzasDelCore.Select(p => new PizzaViewModel

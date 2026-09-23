@@ -85,10 +85,10 @@ INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (4, 'Entregado', 4);
 INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (5, 'Cancelado', 5);
 
 -- Pizzas
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (1, 'Pizza Pepperoni', 'Grande', 1500.00);
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 1400.00);
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (3, 'Pizza Muzzarella', 'Grande', 1200.00);
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (4, 'Pizza Napolitana', 'Grande', 1300.00);
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (1, 'Pizza Pepperoni', 'Grande', 5500.00);
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 4400.00);
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (3, 'Pizza Muzzarella', 'Grande', 5200.00);
+INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, ingredientes) VALUES (4, 'Pizza Napolitana', 'Grande', 3500.00);
 
 -- Ingredientes
 INSERT IGNORE INTO INGREDIENTE (id, nombre) VALUES (1, 'Muzzarella');
