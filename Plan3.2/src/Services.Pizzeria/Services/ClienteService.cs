@@ -1,4 +1,5 @@
 using Core.Pizzeria.DTOs;
+using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios.IRepositorios;
 using Core.Pizzeria.Servicios.IService;
 using Services.Pizzeria.Validations;
@@ -42,9 +43,20 @@ public class ClienteService : IClienteService
         };
     }
 
-    public Task<ClienteRequest> AgregarClienteAsync(ClienteRequest clienteRequest)
+    public async Task<ClienteRequest> AgregarClienteAsync(ClienteRequest clienteRequest)
     {
-        
+        var nuevoCliente = new Cliente
+    {
+        Nombre = clienteRequest.Nombre,
+        Email = clienteRequest.Email,
+        Telefono = clienteRequest.Telefono,
+        Direccion = clienteRequest.Direccion
+    };
+
+    var idGenerado = await _repocliente.AgregarClienteAsync(nuevoCliente);
+
+ 
+    return clienteRequest;
     }
 
 }
