@@ -1,62 +1,58 @@
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using FluentValidation;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios.IRepositorios;
 using Core.Pizzeria.Servicios.IService;
-using Services.Pizzeria.Validations;
 
 namespace Services.Pizzeria.Services;
 
 public class ClienteService : IClienteService
 {
     private readonly IClienteRepositorio _repocliente;
-    private readonly ClienteRequestValidator _validadorcliente;
+    private readonly IValidator<ClienteRequest> _validadorCliente;
 
-    public ClienteService(IClienteRepositorio repocliente, ClienteRequestValidator validadorcliente)
+    public ClienteService(IClienteRepositorio repocliente, IValidator<ClienteRequest> validadorCliente)
     {
         _repocliente = repocliente;
-        _validadorcliente = validadorcliente;
+        _validadorCliente = validadorCliente;
     }
 
-
-    public async Task<IEnumerable<ClienteRequest>> ObtenerClientesAsync()
+    public async Task<IEnumerable<Cliente>> ObtenerClientesAsync()
     {
-        var clientes = await _repocliente.ObtenerClientesAsync();
-        
-        return clientes.Select(cliente => new ClienteRequest
+        return await _repocliente.ObtenerClientesAsync();
+    }
+
+    public async Task<Cliente?> ObtenerClientePorIdAsync(int id)
+    {
+        return await _repocliente.ObtenerClientePorIdAsync(id);
+    }
+
+    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email)
+    {
+        return await _repocliente.ObtenerClientePorEmailAsync(email);
+    }
+
+    public async Task<Cliente> AgregarClienteAsync(ClienteRequest clienteRequest)
+    {
+        var validationResult = await _validadorCliente.ValidateAsync(clienteRequest);
+        if (!validationResult.IsValid)
         {
-            Nombre = cliente.Nombre,
-            Email = cliente.Email,
-            Telefono = cliente.Telefono,
-            Direccion = cliente.Direccion
-        });   
-    }
+            throw new ValidationException(validationResult.Errors);
+        }
 
-    public async Task<ClienteRequest> ObtenerClienteporEmailAsync(string email)
-    {
-        var cliente = await _repocliente.ObtenerClientePorEmailAsync(email);
-        return cliente is null ? null! : new ClienteRequest
-        {
-            Nombre = cliente.Nombre,
-            Email = cliente.Email,
-            Telefono = cliente.Telefono,
-            Direccion = cliente.Direccion
-        };
-    }
-
-    public async Task<ClienteRequest> AgregarClienteAsync(ClienteRequest clienteRequest)
-    {
         var nuevoCliente = new Cliente
-    {
-        Nombre = clienteRequest.Nombre,
-        Email = clienteRequest.Email,
-        Telefono = clienteRequest.Telefono,
-        Direccion = clienteRequest.Direccion
-    };
+        {
+            Nombre = clienteRequest.Nombre,
+            Email = clienteRequest.Email,
+            Telefono = clienteRequest.Telefono,
+            Direccion = clienteRequest.Direccion
+        };
 
-    var idGenerado = await _repocliente.AgregarClienteAsync(nuevoCliente);
+        var idGenerado = await _repocliente.AgregarClienteAsync(nuevoCliente);
+        nuevoCliente.Id = idGenerado;
 
- 
-    return clienteRequest;
+        return nuevoCliente;
     }
-
 }

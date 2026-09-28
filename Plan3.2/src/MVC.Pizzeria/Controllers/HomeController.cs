@@ -1,39 +1,51 @@
 using System.Diagnostics;
+using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using MVC.Pizzeria.Models;
 using Core.Pizzeria.Entidades;
-using System.Data.Common;
 
 namespace MVC.Pizzeria.Controllers;
 
 public class HomeController : Controller
 {
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+
+    public HomeController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    {
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+    }
+
     public IActionResult Index()
     {
         return View();
     }
 
-    public IActionResult Productos()
+    public async Task<IActionResult> Productos()
     {
-        // Aca creo las pizzas con los atributos originales.
-        var pizzasDelCore = new List<Pizza>
-        {
-            new Pizza { Id = 1, Nombre = "Pizza Pepperoni", Tamanio = "Grande", Precio = 5500.00m, Ingredientes = new() { "Muzzarella", "Pepperoni", "Salsa de tomate" } },
-            new Pizza { Id = 2, Nombre = "Pizza Jamón y Queso", Tamanio = "Grande", Precio = 4400.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate",  } },
-            new Pizza { Id = 3, Nombre = "Pizza Muzzarella", Tamanio = "Grande", Precio = 5200.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Orégano" } },
-            new Pizza { Id = 4, Nombre = "Pizza Napolitana", Tamanio = "Grande", Precio = 3500.00m, Ingredientes = new() { "Muzzarella", "Salsa de tomate", "Tomate en rodajas", "Ajo" } }
-        };
+        var baseUrl = _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5183";
+        var client = _httpClientFactory.CreateClient();
 
-        var listaViewModel = pizzasDelCore.Select(p => new PizzaViewModel
+        List<Pizza>? pizzas = null;
+        try
         {
-            
+            pizzas = await client.GetFromJsonAsync<List<Pizza>>($"{baseUrl}/api/pizzas");
+        }
+        catch (Exception)
+        {
+            pizzas = new List<Pizza>();
+        }
+
+        var listaViewModel = (pizzas ?? new List<Pizza>()).Select(p => new PizzaViewModel
+        {
             Id = p.Id,
             Nombre = p.Nombre,
             Tamanio = p.Tamanio,
             Precio = p.Precio,
             Ingredientes = p.Ingredientes,
             ImagenUrl = $"/images/pizza-{p.Id}.jpg"
-
         }).ToList();
 
         return View(listaViewModel);

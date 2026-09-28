@@ -1,6 +1,5 @@
 using FluentValidation;
 using Core.Pizzeria.DTOs;
-using Core.Pizzeria.Servicios.IRepositorios;
 
 namespace Services.Pizzeria.Validations;
 
@@ -25,10 +24,5 @@ public class ClienteRequestValidator : AbstractValidator<ClienteRequest>
         RuleFor(x => x.Direccion)
             .NotEmpty().WithMessage("La direccion es obligatoria.")
             .MaximumLength(200).WithMessage("La direccion no puede superar 200 caracteres.");
-    }
-
-    internal async Task<ClienteRequest> ValidarClienteAsync(ClienteRequest clienteRequest, IClienteRepositorio repocliente)
-    {
-        throw new NotImplementedException();
     }
 }
