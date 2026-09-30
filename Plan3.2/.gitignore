@@ -53,6 +53,20 @@ Desktop.ini
 *.pubxml
 !*.[Pp]ubxml.user
 
+## Propiedades de proyecto
+launchSettings.json
+!**/Properties/launchSettings.json
+
+## Configuracion local (puede contener cadenas de conexion / secretos)
+appsettings.Development.json
+appsettings.Local.json
+appsettings.*.Local.json
+
+## Base de datos local de pruebas (la version final usa MySQL via script.sql)
+pizzeria.db
+pizzeria.db-shm
+pizzeria.db-wal
+
 ## Misc
 *.swp
 *~
@@ -60,6 +74,3 @@ Desktop.ini
 .classpath
 .settings/
 *.lock.json
-launchSettings.json
-appsettings.Development.json
-appsettings.Local.json

@@ -31,6 +31,7 @@ builder.Services.AddPizzeriaDatabase(builder.Configuration);
 builder.Services.AddScoped<IClienteService, ClienteService>();
 builder.Services.AddScoped<IPizzaService, PizzaService>();
 builder.Services.AddScoped<IPedidoService, PedidoService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 // Registrar validadores de FluentValidation
 builder.Services.AddValidatorsFromAssemblyContaining<PedidoRequestValidator>();
@@ -49,6 +50,7 @@ app.MapScalarApiReference(options =>
 });
 
 // Mapeo modular de Endpoints
+app.MapAuthEndpoints();
 app.MapClienteEndpoints();
 app.MapPizzaEndpoints();
 app.MapPedidoEndpoints();

@@ -19,7 +19,8 @@ Para el diseño de casos de uso del sistema, se identifican los siguientes **Act
 ### 1.2 Entidades de Negocio
 Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia de los datos, se definen las siguientes entidades:
 
-* **Cliente:** Contiene los datos de identificación y localización del usuario final. Por diseño solicitado en la consigna, **no posee contraseña ni lógica de autenticación**.
+* **Cliente:** Contiene los datos de identificación y localización del usuario final (nombre, email, teléfono y dirección). **No posee contraseña**: la credencial de acceso vive en la entidad `Usuario`, que se vincula 1:1 con el Cliente.
+* **Usuario:** Entidad de acceso al sistema. Guarda el `password_hash` (BCrypt), el `rol` (`Cliente` / `Admin`) y la fecha de creación. Se vincula con `Cliente` mediante `cliente_id` (único), de modo que un cliente tiene como máximo una cuenta de acceso.
 * **Pizza:** Actúa como catálogo de productos disponibles en la pizzería (Nombre, Tamaño, Precio base).
 * **ItemPedido (Entidad de Soporte):** Representa la línea intermedia que desacopla la Pizza del Pedido. Permite solicitar múltiples cantidades de una misma pizza y congelar el `precio_unitario` histórico al momento de la compra.
 * **Pedido:** Entidad central que unifica al Cliente, la lista de Items y el estado del ciclo de vida de la orden.
@@ -30,6 +31,30 @@ Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia d
 * **EnPreparacion → EnViaje:** Ocurre cuando el Backend recibe una petición HTTP (PATCH) indicando que las pizzas están listas para enviar.
 * **EnViaje → Entregado:** Fin del ciclo, cuando el Backend recibe una petición HTTP (PATCH) indicando que la entrega fue efectiva al cliente.
 * **Transición de Error (Hacia `Cancelado`):** Un pedido puede cancelarse mediante una petición HTTP (PATCH) que lo anule. El estado `Cancellado` es gestionado y registrado en el historial como cualquier otra transición.
+
+### 1.4 Acceso al Sistema (Autenticación sin tokens)
+
+El acceso se resuelve en el Backend, que expone dos operaciones HTTP. **No se emiten tokens**: la API solo valida credenciales y devuelve la información del usuario; es el MVC quien decide cómo mantener la sesión.
+
+| Operación | Endpoint | Descripción |
+| :--- | :--- | :--- |
+| **Registro** | `POST /api/auth/registro` | Inserta un `Cliente` **y** un `Usuario` dentro de una misma transacción. El rol siempre se crea como `Cliente`. |
+| **Login** | `POST /api/auth/login` | Busca el usuario por email y verifica la contraseña contra el `password_hash`. Devuelve `200` con los datos del usuario o `401` si no coinciden. |
+
+**Reglas de seguridad aplicadas:**
+
+* La contraseña **nunca** se guarda en texto plano: se hashea con **BCrypt** (`workFactor = 11`) y la columna `password_hash` almacena el resultado. En el login se usa `BCrypt.Verify`, que además compara en tiempo constante.
+* El `password_hash` **nunca** sale de la capa de datos: la respuesta usa el DTO `UsuarioResponse`, que no tiene esa propiedad.
+* Un email inexistente y una contraseña incorrecta devuelven **el mismo `401`**, para no revelar qué direcciones están registradas.
+* El registro es **atómico**: si falla el insert del `Usuario`, se hace `Rollback` y no queda ningún `Cliente` huérfano.
+
+> **Nota de Análisis:** La separación entre `Cliente` (datos de la persona) y `Usuario` (credencial de acceso) permite que el mismo modelo de negocio sirva tanto a los pedidos como a la administración, sin mezclar la contraseña con los datos de contacto.
+
+**Usuario administrador por defecto** (sembrado por `script.sql`, que `DbInitializer` ejecuta en cada arranque con `INSERT IGNORE`):
+
+| Email | Contraseña | Rol |
+| :--- | :--- | :--- |
+| `admin@pizzeria.com` | `Admin123!` | `Admin` |
 
 ---
 
@@ -121,6 +146,15 @@ erDiagram
         string nombre
     }
 
+    USUARIO {
+        int id PK
+        int cliente_id FK UK
+        string email UK
+        string password_hash
+        string rol
+        datetime fecha_creacion
+    }
+
     PIZZA_INGREDIENTE {
         int pizza_id FK
         int ingrediente_id FK
@@ -158,6 +192,7 @@ erDiagram
     }
 
     CLIENTE ||--o{ PEDIDO : "realiza"
+    CLIENTE ||--o| USUARIO : "accede con"
     PEDIDO ||--|{ ITEM_PEDIDO : "contiene"
     PIZZA ||--o{ ITEM_PEDIDO : "es pedida en"
 

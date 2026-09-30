@@ -133,3 +133,14 @@ INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 4);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 7);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 8);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 9);
+
+-- Usuario administrador por defecto
+-- Email: admin@pizzeria.com   Password: Admin123!   (hash BCrypt con workFactor 11)
+INSERT IGNORE INTO CLIENTE (nombre, email, telefono, direccion)
+VALUES ('Admin Pizzeria', 'admin@pizzeria.com', '0000000000', 'Casa Central');
+
+INSERT IGNORE INTO USUARIO (cliente_id, email, password_hash, rol, fecha_creacion)
+SELECT c.id, 'admin@pizzeria.com', '$2a$11$qme1BepQFiNNjSyXp1T5j.R/n1AsAptRykzPCcBLwdhYa.6qfv6Lm', 'Admin', NOW()
+FROM CLIENTE c
+WHERE c.email = 'admin@pizzeria.com'
+LIMIT 1;

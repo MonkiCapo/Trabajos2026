@@ -24,6 +24,7 @@ public static class DatabaseExtensions
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
         services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
         services.AddScoped<IPizzaRepositorio, PizzaRepositorio>();
+        services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
 
         // Se crea la bd buscando el archivo script.sql
         DbInitializer.Initialize(connectionString);

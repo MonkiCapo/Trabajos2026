@@ -9,30 +9,27 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
 {
     public ClienteRepositorio(IAdo _ado) : base(_ado) { }
 
-    public async Task<int> AgregarClienteAsync(Cliente cliente)
+    public async Task<int> AgregarClienteAsync(Cliente cliente, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
         var sql = @"INSERT INTO CLIENTE (nombre, email, telefono, direccion) 
                     VALUES (@Nombre, @Email, @Telefono, @Direccion);
                     SELECT LAST_INSERT_ID();";
 
-        var id = await Conexion.ExecuteScalarAsync<int>(sql, new
+        var conn = conexion ?? Conexion;
+
+        var id = await conn.ExecuteScalarAsync<int>(sql, new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion
-        });
+        }, transaction);
         return id;
     }
 
     public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id)
     {
-        var sql = @"UPDATE CLIENTE
-                    SET Nombre = @Nombre,
-                        Email = @Email,
-                        Telefono = @Telefono,
-                        Direccion = @Direccion
-                    WHERE id = @Id;";
+        var sql = @"UPDATE CLIENTE SET Nombre = @Nombre,Email = @Email,Telefono = @Telefono,Direccion = @Direccion WHERE id = @Id;";
         var rowsAffected = await Conexion.ExecuteAsync(sql, new
         {
             cliente.Nombre,
@@ -63,10 +60,13 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
         return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
     }
 
-    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email)
+    public Task<Cliente?> ObtenerClientePorEmailAsync(string email, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE email = @Email;";
-        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email });
+
+        var conn = conexion ?? Conexion;
+
+        return conn.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email }, transaction);
     }
 
     public async Task<bool> ExisteEmailDeClienteAsync(string emailExistente)

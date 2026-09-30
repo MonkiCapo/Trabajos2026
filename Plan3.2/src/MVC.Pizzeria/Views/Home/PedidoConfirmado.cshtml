@@ -1,0 +1,72 @@
+@model MVC.Pizzeria.Models.PedidoResponse
+@{
+    ViewData["Title"] = "Pedido Confirmado";
+}
+
+<div class="text-center my-4">
+    <div class="mb-3" style="font-size: 4rem;">🎉</div>
+    <h1 class="fw-bold" style="color: var(--color-principal);">¡Tu pedido fue confirmado!</h1>
+    <p class="text-muted">
+        Gracias @(Model.Cliente?.Nombre ?? "por tu compra"). Ya lo estamos preparando.
+    </p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+                    <span class="text-muted">Número de pedido</span>
+                    <span class="fs-4 fw-bold" style="color: var(--color-principal);">#@Model.PedidoId</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+                    <span class="text-muted">Estado</span>
+                    <span class="badge bg-warning text-dark fs-6">@Model.Estado</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pb-3 mb-3 border-bottom">
+                    <span class="text-muted">Fecha</span>
+                    <span class="fw-semibold">@Model.FechaCreacion.ToString("dd/MM/yyyy HH:mm")</span>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted">Email de contacto</span>
+                    <span class="fw-semibold">@(Model.Cliente?.Email ?? "-")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--color-principal);">Tu pedido</h5>
+
+                @foreach (var item in Model.Items)
+                {
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                        <span>
+                            <span class="fw-semibold">@item.Cantidad ×</span>
+                            @item.Pizza
+                            <span class="text-muted small">(@item.PrecioUnitario.ToString("N2") c/u)</span>
+                        </span>
+                        <span class="fw-semibold">$@item.Subtotal.ToString("N2")</span>
+                    </div>
+                }
+
+                <div class="d-flex justify-content-between align-items-center pt-3 mt-2">
+                    <span class="fs-5 fw-bold">Total</span>
+                    <span class="fs-4 fw-bold text-success">$@Model.Total.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info" role="alert">
+            <strong>¿Cómo sigue?</strong> El pedido va a avanzar por los estados:
+            En Preparación → En Viaje → Entregado.
+        </div>
+
+        <div class="text-center">
+            <a asp-action="Index" class="btn btn-outline-secondary">Volver al inicio</a>
+        </div>
+    </div>
+</div>

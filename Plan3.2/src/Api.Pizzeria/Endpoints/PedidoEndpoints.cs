@@ -130,6 +130,45 @@ public static class PedidoEndpoints
             }
         });
 
+        // 3. POST /api/pedidos/checkout (Cerrar pedido con datos de contacto - find-or-create de cliente)
+        group.MapPost("/checkout", async (CheckoutRequest request, IPedidoService pedidoService, IValidator<CheckoutRequest> validator, ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("PedidoEndpoints");
+            var validation = await validator.ValidateAsync(request);
+            if (!validation.IsValid)
+            {
+                return Results.ValidationProblem(validation.ToDictionary());
+            }
+
+            try
+            {
+                var createdOrder = await pedidoService.CrearPedidoConDatosAsync(request);
+
+                logger.LogInformation("[API] Checkout exitoso: pedido {Id} por {Email}", createdOrder.Id, request.Email);
+
+                return Results.Created($"/api/pedidos/{createdOrder.Id}", new
+                {
+                    pedidoId = createdOrder.Id,
+                    estado = createdOrder.Estado,
+                    total = createdOrder.Total,
+                    fechaCreacion = createdOrder.FechaCreacion
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Results.BadRequest(new { error = "Datos invalidos", detalles = ex.Message });
+            }
+            catch (ValidationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[API] Error inesperado al hacer el checkout.");
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        });
+
         return app;
     }
 }
