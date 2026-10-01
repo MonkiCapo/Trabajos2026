@@ -1,9 +1,5 @@
 namespace MVC.Pizzeria.Models
 {
-    /// <summary>
-    /// Respuesta de GET /api/pedidos/{id}.
-    /// Los precios llegan ya calculados por el servidor, nunca por el cliente.
-    /// </summary>
     public class PedidoResponse
     {
         public int PedidoId { get; set; }

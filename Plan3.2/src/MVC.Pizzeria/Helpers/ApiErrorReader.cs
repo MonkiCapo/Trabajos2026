@@ -2,10 +2,6 @@ using System.Text.Json;
 
 namespace MVC.Pizzeria.Helpers
 {
-    /// <summary>
-    /// Traduce los distintos formatos de error de la API a (clave, mensaje)
-    /// para poder volcarlos al ModelState y mostrarlos en la vista.
-    /// </summary>
     public static class ApiErrorReader
     {
         public static async Task<List<(string Clave, string Mensaje)>> LeerAsync(HttpResponseMessage response)

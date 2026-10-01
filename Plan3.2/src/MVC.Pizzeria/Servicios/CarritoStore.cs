@@ -5,10 +5,6 @@ namespace MVC.Pizzeria.Servicios
 {
     public class CarritoStore : ICarritoStore
     {
-        /// <summary>
-        /// Tope por pizza. Coincide con el limite que pone la API en
-        /// CheckoutRequestValidator, asi el carrito nunca genera un 400.
-        /// </summary>
         public const int CANTIDAD_MAXIMA = 99;
 
         private const string CLAVE = "Carrito";
@@ -22,17 +18,10 @@ namespace MVC.Pizzeria.Servicios
             _httpContextAccessor = httpContextAccessor;
         }
 
-        /// <summary>
-        /// La sesion se resuelve aca y no en el constructor a proposito:
-        /// ISession no se puede inyectar, ASP.NET Core no lo registra en el
-        /// contenedor de DI. Lo unico disponible es HttpContext.Session, que
-        /// arma el middleware app.UseSession() antes de ejecutar los endpoints.
-        /// </summary>
         private ISession Session =>
             _httpContextAccessor.HttpContext?.Session
             ?? throw new InvalidOperationException(
-                "No hay sesion disponible en el contexto actual. Revisa que app.UseSession() "
-                + "esté en el pipeline y que AddSession() esté registrado.");
+                "No hay sesion disponible en el contexto actual. Revisa que app.UseSession() esté en el pipeline y que AddSession() esté registrado.");
 
         public CarritoViewModel Obtener()
         {
@@ -49,8 +38,6 @@ namespace MVC.Pizzeria.Servicios
             }
             catch (JsonException)
             {
-                // Si la cookie se corrupto, se descarta y se sigue como si
-                // el carrito estuviera vacio. Es preferible a tirar 500.
                 Session.Remove(CLAVE);
                 return new CarritoViewModel();
             }

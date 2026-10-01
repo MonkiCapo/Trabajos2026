@@ -38,10 +38,6 @@ public class PedidoService : IPedidoService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Resuelve los precios desde la base, calcula el total y escribe PEDIDO + ITEM_PEDIDO + HISTORIAL.
-    /// Es la parte comun entre el alta de pedido y el checkout.
-    /// </summary>
     private async Task PersistirPedidoAsync(Pedido pedido, IDbConnection conexion, IDbTransaction transaction)
     {
         // 1. Resolver precios de pizzas por nombre y calcular total
@@ -111,10 +107,6 @@ public class PedidoService : IPedidoService
         return nuevoPedido;
     }
 
-    /// <summary>
-    /// Cierra un pedido con los datos de contacto y las pizzas elegidas.
-    /// Si el cliente todavia no existe, lo da de alta en la misma transaccion.
-    /// </summary>
     public async Task<Pedido> CrearPedidoConDatosAsync(CheckoutRequest request)
     {
         var validationResult = await _validadorCheckout.ValidateAsync(request);

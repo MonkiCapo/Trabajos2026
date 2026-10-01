@@ -1,8 +1,5 @@
 namespace MVC.Pizzeria.Models
 {
-    /// <summary>
-    /// Datos que devuelve POST /api/pedidos/checkout.
-    /// </summary>
     public class PedidoCreadoResponse
     {
         public int PedidoId { get; set; }

@@ -1,16 +1,5 @@
 namespace Core.Pizzeria.Servicios.Enum;
 
-/// <summary>
-/// Reglas de la maquina de estados del pedido.
-///
-/// Se permiten avanzar un paso a la vez y cancelar desde cualquier estado
-/// previo a la entrega. Entregado y Cancelado son estados finales: no salen
-/// a ningun otro estado.
-///
-///   EsperaConfirmacion ──> EnPreparacion ──> EnViaje ──> Entregado
-///        │                    │               │
-///        └────────────────────┴───────────────┴──> Cancelado
-/// </summary>
 public static class TransicionesEstadoPedido
 {
     public static bool EsValida(EstadoPedido actual, EstadoPedido siguiente)

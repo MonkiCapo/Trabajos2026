@@ -11,10 +11,6 @@ namespace Services.Pizzeria.Services;
 
 public class AuthService : IAuthService
 {
-    /// <summary>
-    /// Costo del hash BCrypt. 11 es el valor recomendado por defecto.
-    /// A mayor numero, mas lento el calculo y mas segura la contraseña.
-    /// </summary>
     private const int BCRYPT_WORK_FACTOR = 11;
 
     private readonly IUsuarioRepositorio _usuarioRepo;
@@ -40,10 +36,6 @@ public class AuthService : IAuthService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Registra un cliente: inserta en CLIENTE y en USUARIO dentro de la misma transaccion.
-    /// Si el segundo insert falla, se hace rollback y no queda ningun cliente huerfano.
-    /// </summary>
     public async Task<UsuarioResponse> RegistrarAsync(RegistroRequest request)
     {
         var validationResult = await _validadorRegistro.ValidateAsync(request);
@@ -111,9 +103,6 @@ public class AuthService : IAuthService
         }
     }
 
-    /// <summary>
-    /// Devuelve null si el email no existe o la contraseña no coincide.
-    /// </summary>
     public async Task<UsuarioResponse?> LoginAsync(LoginRequest request)
     {
         var validationResult = await _validadorLogin.ValidateAsync(request);

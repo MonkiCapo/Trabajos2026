@@ -65,7 +65,6 @@ public class PedidoController : Controller
             TempData["Error"] = "La API tardo demasiado en responder. Intenta de nuevo.";
         }
 
-        // PRG: el catalogo se vuelve a pintar desde la sesion, no desde el POST.
         return RedirectToAction("Productos", "Home");
     }
 
@@ -99,12 +98,6 @@ public class PedidoController : Controller
         return View(_carrito.Obtener());
     }
 
-    // ------------------------------------------------------------ Confirmar
-
-    /// <summary>
-    /// Pantalla intermedia: el carrito en solo lectura mas los datos de contacto.
-    /// Aca se decide a quien se le hace el pedido.
-    /// </summary>
     public IActionResult Confirmacion()
     {
         var carrito = _carrito.Obtener();
@@ -118,9 +111,6 @@ public class PedidoController : Controller
         return View(new ConfirmacionViewModel { Carrito = carrito });
     }
 
-    /// <summary>
-    /// Cierra el pedido contra la API y, si sale bien, vacia el carrito.
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Confirmar(ConfirmacionViewModel model)
@@ -208,10 +198,6 @@ public class PedidoController : Controller
         }
     }
 
-    /// <summary>
-    /// Muestra el pedido recien confirmado. Vuelve a pedirlo a la API para que
-    /// los datos mostrados sean los reales y no los que envio el formulario.
-    /// </summary>
     public async Task<IActionResult> Confirmado(int id)
     {
         if (id <= 0)
@@ -248,15 +234,7 @@ public class PedidoController : Controller
         }
     }
 
-    // ------------------------------------------------------------ Mis pedidos
 
-    /// <summary>
-    /// Los pedidos que confirmo este navegador, con el estado que tienen ahora.
-    ///
-    /// La sesion solo guarda los ids: los datos se leen de la API uno por uno,
-    /// asi que la lista siempre muestra el estado real y no uno guardado que
-    /// quedo viejo. Los ids que la API ya no reconoce se limpian solos.
-    /// </summary>
     public async Task<IActionResult> MisPedidos()
     {
         var guardados = _misPedidos.Obtener();
@@ -270,9 +248,6 @@ public class PedidoController : Controller
         {
             var client = _httpClientFactory.CreateClient();
 
-            // Peticiones en paralelo: cada pedido se pide por separado porque
-            // la API expone GET /api/pedidos/{id} y no una lista. Con el tope de
-            // 20 del store no se nota la diferencia.
             async Task<(PedidoResumen? Resumen, PedidoRegistrado Guardado)> Cargar(PedidoRegistrado guardado)
             {
                 var respuesta = await client.GetAsync($"{BaseUrl}/api/pedidos/{guardado.PedidoId}");
@@ -304,8 +279,7 @@ public class PedidoController : Controller
 
             var cargados = await Task.WhenAll(guardados.Select(Cargar));
 
-            // Pedidos que ya no existen en la API (borrados a mano): se sacan
-            // de la sesion para no dejarlos fantasma en la lista.
+            // Pedidos que ya no existen en la API (borrados a mano): se sacan de la sesion para no dejarlos fantasma en la lista.
             foreach (var caido in cargados.Where(c => c.Resumen is null))
             {
                 _misPedidos.Quitar(caido.Guardado.PedidoId);
@@ -331,10 +305,6 @@ public class PedidoController : Controller
         }
     }
 
-    /// <summary>
-    /// Saca un pedido de la lista. No borra el pedido de la base: solo deja de
-    /// estar en el recordatorio de este navegador.
-    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult OlvidarPedido(int id)
@@ -348,19 +318,6 @@ public class PedidoController : Controller
         return RedirectToAction(nameof(MisPedidos));
     }
 
-    // ------------------------------------------------------------ Seguimiento
-
-    /// <summary>
-    /// Muestra el pedido con su linea de tiempo de estados.
-    ///
-    /// Toma el id por query string y vuelve a leer todo desde la API, asi que
-    /// recargar la pagina (el boton "Actualizar") trae el estado nuevo sin
-    /// tener que tocar la base.
-    ///
-    /// OJO: sin login no hay forma de saber a quien pertenece un pedido, por
-    /// eso esta pantalla es de consulta libre por id. Si esto fuera a produccion
-    /// habria que filtrar por cliente.
-    /// </summary>
     public async Task<IActionResult> Seguimiento(int id)
     {
         if (id <= 0)
@@ -410,13 +367,6 @@ public class PedidoController : Controller
         }
     }
 
-    // ----------------------------------------------------------------- API
-
-    /// <summary>
-    /// Busca la pizza en el catalogo de la API. No se agrega GET /api/pizzas/{id}
-    /// a proposito: el catalogo es chico y asi el carrito nunca guarda un
-    /// precio que la API no conoce.
-    /// </summary>
     private async Task<Pizza?> ObtenerPizzaDelCatalogoAsync(int pizzaId)
     {
         var client = _httpClientFactory.CreateClient();

@@ -26,9 +26,6 @@ public class HomeController : Controller
         return View();
     }
 
-    /// <summary>
-    /// Catalogo de pizzas. Agregar al carrito vive en PedidoController.
-    /// </summary>
     public async Task<IActionResult> Productos()
     {
         List<Pizza> pizzas;
