@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
@@ -16,4 +17,10 @@ public interface IPedidoService
 
     Task ActualizarEstadoAsync(int pedidoId, Servicios.Enum.EstadoPedido nuevoEstado, string observacion);
     Task<Pedido?> GetPedidoByIdAsync(int id);
+
+    /// <summary>
+    /// Historial de cambios de estado del pedido, del mas antiguo al mas nuevo.
+    /// Devuelve una lista vacia si el pedido todavia no cambio de estado.
+    /// </summary>
+    Task<IEnumerable<HistorialEstadoPedido>> ObtenerHistorialAsync(int pedidoId);
 }

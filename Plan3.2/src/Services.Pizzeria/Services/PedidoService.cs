@@ -181,13 +181,29 @@ public class PedidoService : IPedidoService
 
     public async Task ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, string observacion)
     {
+
+        var pedido = await _pedidoRepo.ObtenerPedidoPorIdAsync(pedidoId);
+
+        if (pedido == null)
+        {
+            throw new ArgumentException($"El pedido con ID {pedidoId} no existe.");
+        }
+
+        if (!TransicionesEstadoPedido.EsValida(pedido.Estado, nuevoEstado))
+        {
+            throw new ArgumentException(
+                $"Transicion invalida: el pedido {pedidoId} esta en {pedido.Estado} "
+                + $"y no puede pasar a {nuevoEstado}. {TransicionesEstadoPedido.Describir(pedido.Estado)}");
+        }
+
         using var conexion = _ado.GetDbConnection();
         conexion.Open();
         using var transaction = conexion.BeginTransaction();
 
         try
         {
-            _logger.LogInformation("[PEDIDOSERVICE] Transicionando pedido {Id} a {Estado} - {Obs}", pedidoId, nuevoEstado, observacion);
+            _logger.LogInformation("[PEDIDOSERVICE] Transicionando pedido {Id} de {Actual} a {Nuevo} - {Obs}",
+                pedidoId, pedido.Estado, nuevoEstado, observacion);
 
             // Actualizar pedido
             await _pedidoRepo.ActualizarEstadoAsync(pedidoId, nuevoEstado, conexion, transaction);
@@ -196,6 +212,8 @@ public class PedidoService : IPedidoService
             await _pedidoRepo.CrearHistorialAsync(pedidoId, nuevoEstado, observacion, conexion, transaction);
 
             transaction.Commit();
+
+            _logger.LogInformation("[PEDIDOSERVICE] Pedido {Id} quedo en {Estado}.", pedidoId, nuevoEstado);
         }
         catch (Exception ex)
         {
@@ -208,5 +226,12 @@ public class PedidoService : IPedidoService
     public async Task<Pedido?> GetPedidoByIdAsync(int id)
     {
         return await _pedidoRepo.ObtenerPedidoPorIdAsync(id);
+    }
+
+    public async Task<IEnumerable<HistorialEstadoPedido>> ObtenerHistorialAsync(int pedidoId)
+    {
+        var historial = await _pedidoRepo.ObtenerHistorialAsync(pedidoId);
+
+        return historial;
     }
 }

@@ -8,7 +8,7 @@ namespace Dapper.Pizzeria;
 
 public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
 {
-    public PedidoRepositorio(IAdo _ado) : base(_ado) { }
+    public PedidoRepositorio(IAdo ado) : base(ado) { }
 
     public async Task<int> CrearPedidoAsync(Pedido pedido, IDbConnection conexion, IDbTransaction transaction)
     {
@@ -83,9 +83,6 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
             FROM PEDIDO
             WHERE id = @Id";
 
-        var pedido = await Conexion.QueryFirstOrDefaultAsync<Pedido>(sqlPedido, new { Id = id });
-        if (pedido == null) return null;
-
         const string sqlItems = @"
             SELECT ip.id, ip.pedido_id AS PedidoId, ip.pizza_id AS PizzaId, ip.cantidad, 
                    ip.precio_unitario AS PrecioUnitario, pz.nombre AS PizzaNombre
@@ -93,10 +90,34 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
             JOIN PIZZA pz ON ip.pizza_id = pz.id
             WHERE ip.pedido_id = @PedidoId";
 
-        var items = await Conexion.QueryAsync<ItemPedido>(sqlItems, new { PedidoId = id });
+        using var conexion = NuevaConexion();
+
+        var pedido = await conexion.QueryFirstOrDefaultAsync<Pedido>(sqlPedido, new { Id = id });
+        if (pedido == null) return null;
+
+        // Las dos consultas van sobre la misma conexion: el pedido y sus items
+        // se leen de forma consistente, sin abrir dos conexiones al pool.
+        var items = await conexion.QueryAsync<ItemPedido>(sqlItems, new { PedidoId = id });
         pedido.Items = items.ToList();
 
         return pedido;
+    }
+
+    public async Task<IEnumerable<HistorialEstadoPedido>> ObtenerHistorialAsync(int pedidoId)
+    {
+        const string sql = @"
+            SELECT h.id,
+                   h.pedido_id AS PedidoId,
+                   h.estado_id AS Estado,
+                   h.fecha_cambio AS FechaCambio,
+                   h.observacion AS Observacion
+            FROM HISTORIAL_ESTADO_PEDIDO h
+            WHERE h.pedido_id = @PedidoId
+            ORDER BY h.fecha_cambio, h.id";
+
+        using var conexion = NuevaConexion();
+
+        return await conexion.QueryAsync<HistorialEstadoPedido>(sql, new { PedidoId = pedidoId });
     }
 
     public async Task<IEnumerable<Pedido>> ObtenerPedidosAsync()
@@ -105,6 +126,9 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
             SELECT id, cliente_id AS ClienteId, estado_id AS Estado, fecha_creacion AS FechaCreacion, 
                    fecha_actualizacion AS FechaActualizacion, total
             FROM PEDIDO;";
-        return await Conexion.QueryAsync<Pedido>(sql);
+
+        using var conexion = NuevaConexion();
+
+        return await conexion.QueryAsync<Pedido>(sql);
     }
 }

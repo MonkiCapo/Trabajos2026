@@ -123,9 +123,43 @@ public static class PedidoEndpoints
                 logger.LogInformation("[API] Pedido {Id} transicionado a {Estado}.", id, request.Estado);
                 return Results.Ok(new { pedidoId = id, estado = request.Estado });
             }
+            catch (ArgumentException ex)
+            {
+                // Transicion no permitida por la maquina de estados.
+                logger.LogWarning("[API] Transicion rechazada en el pedido {Id}: {Motivo}", id, ex.Message);
+                return Results.BadRequest(new { error = "Transicion invalida", detalles = ex.Message });
+            }
             catch (Exception ex)
             {
                 logger.LogError(ex, "[API] Error al transicionar el estado del pedido {Id}.", id);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        });
+
+        // 6. GET /api/pedidos/{id}/historial (Historial de estados - UC-02)
+        group.MapGet("/{id:int}/historial", async (int id, IPedidoService pedidoService, ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("PedidoEndpoints");
+            try
+            {
+                var pedido = await pedidoService.GetPedidoByIdAsync(id);
+                if (pedido == null)
+                {
+                    return Results.NotFound();
+                }
+
+                var historial = await pedidoService.ObtenerHistorialAsync(id);
+
+                return Results.Ok(historial.Select(h => new
+                {
+                    estado = h.Estado,
+                    fechaCambio = h.FechaCambio,
+                    observacion = h.Observacion
+                }));
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[API] Error al obtener el historial del pedido {Id}.", id);
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
         });

@@ -5,7 +5,9 @@ namespace Dapper.Pizzeria;
 
 public abstract class DapperRepo
 {
-    protected IDbConnection Conexion { get; set; }
+    protected IAdo Ado { get; }
 
-    protected DapperRepo(IAdo _ado) => Conexion = _ado.GetDbConnection();
+    protected DapperRepo(IAdo ado) => Ado = ado;
+
+    protected IDbConnection NuevaConexion() => Ado.GetDbConnection();
 }

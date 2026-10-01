@@ -1,0 +1,128 @@
+@model MVC.Pizzeria.Models.CarritoViewModel
+@{
+    ViewData["Title"] = "Mi Carrito";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Mi Carrito 🛒</h1>
+        <p class="text-muted mb-0">Revisá y ajustá las cantidades antes de confirmar.</p>
+    </div>
+    @if (Model.HayItems)
+    {
+        <form method="post" asp-action="Vaciar" asp-controller="Pedido" class="m-0">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-danger btn-sm">Vaciar carrito</button>
+        </form>
+    }
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+@if (!Model.HayItems)
+{
+    <div class="text-center my-5">
+        <p class="text-muted fs-5">Tu carrito está vacío.</p>
+        <a asp-action="Productos" asp-controller="Home" class="btn btn-pizza-primary">
+            Ver pizzas
+        </a>
+    </div>
+}
+else
+{
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" class="ps-4">Pizza</th>
+                            <th scope="col" class="text-end">Precio</th>
+                            <th scope="col" style="width: 170px;">Cantidad</th>
+                            <th scope="col" class="text-end">Subtotal</th>
+                            <th scope="col"><span class="visually-hidden">Quitar</span></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Items)
+                        {
+                            <tr>
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <img src="@item.ImagenUrl" alt="@item.Nombre"
+                                             class="rounded border" width="56" height="56"
+                                             style="object-fit: cover;"
+                                             onerror="this.src='/images/pizza-generica.jpg';" />
+                                        <div>
+                                            <div class="fw-semibold">@item.Nombre</div>
+                                            <div class="text-muted small">@item.Tamanio</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-end">$@item.Precio.ToString("N2")</td>
+                                <td>
+                                    @* Cada linea actualiza la sesion y vuelve al resumen (PRG). *@
+                                    <form method="post" asp-action="Actualizar" asp-controller="Pedido"
+                                          class="d-flex gap-2">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="pizzaId" value="@item.PizzaId" />
+                                        <input type="number"
+                                               name="cantidad"
+                                               class="form-control form-control-sm"
+                                               value="@item.Cantidad"
+                                               min="0"
+                                               max="99"
+                                               step="1"
+                                               aria-label="Cantidad de @item.Nombre" />
+                                        <button type="submit" class="btn btn-outline-secondary btn-sm text-nowrap">
+                                            Actualizar
+                                        </button>
+                                    </form>
+                                </td>
+                                <td class="text-end fw-semibold">$@item.Subtotal.ToString("N2")</td>
+                                <td class="text-end pe-4">
+                                    <form method="post" asp-action="Quitar" asp-controller="Pedido">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="pizzaId" value="@item.PizzaId" />
+                                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                                title="Quitar del carrito">
+                                            Quitar
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <td colspan="3" class="text-end fw-bold">Total</td>
+                            <td class="text-end fs-5 fw-bold text-success">
+                                $@Model.Total.ToString("N2")
+                            </td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info" role="alert">
+        <strong>Los precios son los del catálogo.</strong> Cuando confirmes, la API los vuelve a
+        resolver desde la base antes de calcular el total del pedido.
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 p-3 rounded shadow-sm"
+         style="background-color: var(--color-principal); color: white;">
+        <div>
+            <span class="d-block small text-uppercase" style="opacity: .85;">Total del carrito</span>
+            <span class="fs-3 fw-bold">$@Model.Total.ToString("N2")</span>
+        </div>
+        <a asp-action="Confirmacion" asp-controller="Pedido" class="btn btn-light btn-lg fw-bold px-4">
+            Continuar
+        </a>
+    </div>
+}

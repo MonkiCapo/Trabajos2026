@@ -1,0 +1,127 @@
+@model MVC.Pizzeria.Models.SeguimientoViewModel
+@using MVC.Pizzeria.Helpers
+@{
+    ViewData["Title"] = "Seguimiento del pedido";
+
+    var actual = Model.EstadoActual;
+    var cancelado = actual?.Estado == "Cancelado";
+    var alcanzado = EstadoPedidoUI.NumeroDe(actual?.Estado);
+    var pasos = EstadoPedidoUI.Recorrido;
+}
+
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 my-4">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Seguimiento del pedido</h1>
+        <p class="text-muted mb-0">Pedido #@Model.Pedido.PedidoId</p>
+    </div>
+
+    <a asp-action="Seguimiento" asp-route-id="@Model.Pedido.PedidoId" class="btn btn-outline-secondary">
+        Actualizar
+    </a>
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-warning" role="alert">@error</div>
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+
+        @* Estado actual *@
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4 d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-muted d-block">Estado actual</span>
+                    <span class="fs-4 fw-bold">@(actual == null ? "Sin historial" : EstadoPedidoUI.NombreDe(actual.Estado))</span>
+                    @if (actual != null)
+                    {
+                        <span class="text-muted small">
+                            Actualizado el @actual.FechaCambio.ToString("dd/MM/yyyy HH:mm")
+                        </span>
+                    }
+                </div>
+                @if (actual != null)
+                {
+                    <span class="badge @EstadoPedidoUI.BadgeDe(actual.Estado) fs-6">@actual.Estado</span>
+                }
+            </div>
+        </div>
+
+        @* Barra de avance. Si esta cancelado no aplica. *@
+        @if (!cancelado)
+        {
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between">
+                        @foreach (var paso in pasos)
+                        {
+                            var hecho = EstadoPedidoUI.NumeroDe(paso) <= alcanzado;
+                            <div class="text-center flex-fill">
+                                @if (hecho)
+                                {
+                                    <div class="text-success fs-4">&#10003;</div>
+                                }
+                                else
+                                {
+                                    <div class="text-muted fs-4">&#9675;</div>
+                                }
+                                <div class="small @(hecho ? "fw-semibold" : "text-muted")">@EstadoPedidoUI.NombreDe(paso)</div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        @* Linea de tiempo *@
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-4" style="color: var(--color-principal);">Historial</h5>
+
+                @if (Model.Historial.Count == 0)
+                {
+                    <p class="text-muted mb-0">Este pedido todavia no registro cambios de estado.</p>
+                }
+                else
+                {
+                    <div class="position-relative ps-4">
+                        <div class="position-absolute top-0 bottom-0 start-0 border-start"></div>
+
+                        @foreach (var paso in Model.Historial)
+                        {
+                            var esElUltimo = paso == Model.EstadoActual;
+
+                            <div class="position-relative pb-4">
+                                <span class="position-absolute top-1 start-0 translate-middle">
+                                    <span class="badge @EstadoPedidoUI.BadgeDe(paso.Estado) rounded-circle p-2 border border-white"></span>
+                                </span>
+
+                                <div class="fw-semibold">
+                                    @EstadoPedidoUI.NombreDe(paso.Estado)
+                                    @if (esElUltimo)
+                                    {
+                                        <span class="badge bg-dark ms-1">actual</span>
+                                    }
+                                </div>
+                                <div class="text-muted small">
+                                    @paso.FechaCambio.ToString("dd/MM/yyyy HH:mm:ss")
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(paso.Observacion))
+                                {
+                                    <div class="mt-1">@paso.Observacion</div>
+                                }
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="text-center">
+            <a asp-action="Productos" asp-controller="Home" class="btn btn-outline-secondary">
+                Volver al menu
+            </a>
+        </div>
+    </div>
+</div>

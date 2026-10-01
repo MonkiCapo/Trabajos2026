@@ -1,6 +1,6 @@
 namespace Core.Pizzeria.DTOs;
 
-// Lo que el cliente manda para registrarse (incluye datos del Cliente + contraseña)
+// DTO para registrarse
 public class RegistroRequest
 {
     public string Nombre { get; set; } = string.Empty;

@@ -2,12 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MVC.Pizzeria.Models
 {
-    /// <summary>
-    /// Datos del formulario de pedido: contacto del cliente + catalogo con la
-    /// cantidad elegida en cada pizza. Sin carrito y sin sesion: la seleccion
-    /// viaja en el propio formulario.
-    /// </summary>
-    public class CheckoutViewModel
+    public class ConfirmacionViewModel
     {
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         [StringLength(100, ErrorMessage = "El nombre no puede superar 100 caracteres.")]
@@ -27,11 +22,6 @@ namespace MVC.Pizzeria.Models
         [StringLength(200, ErrorMessage = "La direccion no puede superar 200 caracteres.")]
         public string Direccion { get; set; } = string.Empty;
 
-        /// <summary>El catalogo completo, con la cantidad elegida en cada pizza.</summary>
-        public List<PizzaViewModel> Pizzas { get; set; } = new();
-
-        public decimal Total => Pizzas.Sum(p => p.Subtotal);
-
-        public bool HayItems => Pizzas.Any(p => p.Cantidad > 0);
+        public CarritoViewModel Carrito { get; set; } = new();
     }
 }

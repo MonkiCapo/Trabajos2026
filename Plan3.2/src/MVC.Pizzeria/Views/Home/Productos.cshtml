@@ -1,4 +1,4 @@
-@model MVC.Pizzeria.Models.CheckoutViewModel
+@model List<MVC.Pizzeria.Models.PizzaViewModel>
 @{
     ViewData["Title"] = "Nuestro Menú";
 }
@@ -6,154 +6,93 @@
 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
     <div>
         <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Nuestros Productos 🍕</h1>
-        <p class="text-muted mb-0">Marcá las cantidades y completá tus datos para confirmar el pedido.</p>
+        <p class="text-muted mb-0">Elegí tus pizzas y agregalas al carrito.</p>
     </div>
-    <span class="badge bg-danger fs-6 px-3 py-2">Menú Completo</span>
+    <a asp-action="Resumen" asp-controller="Pedido" class="btn btn-pizza-primary">
+        Ver mi carrito 🛒
+    </a>
 </div>
 
-@if (!ViewData.ModelState.IsValid)
+@if (ViewData["Error"] is string errorCatalogo)
 {
-    <div class="alert alert-danger" role="alert">
-        <strong>No pudimos confirmar el pedido:</strong>
-        <ul class="mb-0 mt-2">
-            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
-            {
-                <li>@error.ErrorMessage</li>
-            }
-        </ul>
+    <div class="alert alert-danger" role="alert">@errorCatalogo</div>
+}
+@if (TempData["Ok"] is string okAgregar)
+{
+    <div class="alert alert-success" role="alert">@okAgregar</div>
+}
+@if (TempData["Error"] is string errorAgregar)
+{
+    <div class="alert alert-danger" role="alert">@errorAgregar</div>
+}
+
+@if (!Model.Any())
+{
+    <div class="text-center my-5">
+        <p class="text-muted fs-5">No hay pizzas disponibles para mostrar.</p>
     </div>
 }
 
-<form method="post" asp-action="ConfirmarPedido" id="formPedido">
-    @Html.AntiForgeryToken()
+<div class="row g-4">
+    @foreach (var pizza in Model)
+    {
+        <div class="col-md-6 col-lg-3">
+            <div class="product-card h-100 shadow-sm border rounded overflow-hidden">
+                <div class="product-image-container" style="height: 200px; overflow: hidden;">
+                    <img src="@pizza.ImagenUrl" class="w-100 h-100 object-fit-cover" alt="@pizza.Nombre"
+                         onerror="this.src='/images/pizza-generica.jpg';" />
+                </div>
 
-    <div class="row g-4">
-        @for (var i = 0; i < Model.Pizzas.Count; i++)
-        {
-            var idx = i;
-            var pizza = Model.Pizzas[i];
-
-            <div class="col-md-6 col-lg-3">
-                <div class="product-card h-100 shadow-sm border rounded overflow-hidden">
-                    <div class="product-image-container" style="height: 200px; overflow: hidden;">
-                        <img src="@pizza.ImagenUrl" class="w-100 h-100 object-fit-cover" alt="@pizza.Nombre"
-                             onerror="this.src='/images/pizza-generica.jpg';">
+                <div class="p-3 d-flex flex-column">
+                    <div class="product-header d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="product-title mb-0 fw-bold">@pizza.Nombre</h5>
+                        <span class="badge bg-secondary">@pizza.Tamanio</span>
                     </div>
 
-                    <div class="p-3 d-flex flex-column">
-                        <div class="product-header d-flex justify-content-between align-items-center mb-2">
-                            <h5 class="product-title mb-0 fw-bold">@pizza.Nombre</h5>
-                            <span class="badge bg-secondary">@pizza.Tamanio</span>
-                        </div>
-
-                        <div class="product-body">
-                            <div class="mb-3">
-                                <span class="d-block text-muted small fw-bold mb-1">Ingredientes:</span>
-                                @foreach (var ing in pizza.Ingredientes)
+                    <div class="product-body">
+                        <div class="mb-3">
+                            <span class="d-block text-muted small fw-bold mb-1">Ingredientes:</span>
+                            @if (pizza.Ingredientes.Any())
+                            {
+                                foreach (var ing in pizza.Ingredientes)
                                 {
                                     <span class="badge bg-light text-dark border me-1">@ing</span>
                                 }
-                            </div>
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Sin detalle de ingredientes.</span>
+                            }
+                        </div>
 
-                            <div class="d-flex justify-content-between align-items-center mb-3">
-                                <span class="fw-bold text-success fs-5" data-precio="@pizza.Precio">$@pizza.Precio</span>
-                            </div>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="fw-bold text-success fs-5">$@pizza.Precio.ToString("N2")</span>
+                        </div>
 
-                            <div class="mt-auto">
-                                <label class="form-label small text-muted mb-1" for="cant-@idx">Cantidad</label>
-                                <input type="number"
-                                       class="form-control cantidad-input"
-                                       id="cant-@idx"
-                                       name="Pizzas[@idx].Cantidad"
-                                       value="@pizza.Cantidad"
-                                       min="0"
-                                       max="99"
-                                       step="1"
-                                       data-precio="@pizza.Precio" />
-                            </div>
+                        <div class="mt-auto">
+                            @* Solo viaja el id de la pizza: el nombre y el precio
+                               los vuelve a pedir PedidoController a la API. *@
+                            <form method="post" asp-action="Agregar" asp-controller="Pedido">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="pizzaId" value="@pizza.Id" />
+                                <div class="d-flex gap-2">
+                                    <input type="number"
+                                           name="cantidad"
+                                           class="form-control cantidad-input"
+                                           value="1"
+                                           min="1"
+                                           max="99"
+                                           step="1"
+                                           aria-label="Cantidad de @pizza.Nombre" />
+                                    <button type="submit" class="btn btn-pizza-primary flex-grow-1">
+                                        Agregar
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
             </div>
-
-            @* Se.hidden para que el POST sepa de que pizza se trata aunque la cantidad sea 0 *@
-            <input type="hidden" name="Pizzas[@idx].Nombre" value="@pizza.Nombre" />
-            <input type="hidden" name="Pizzas[@idx].Precio" value="@pizza.Precio" />
-        }
-    </div>
-
-    <hr class="my-4" />
-
-    <div class="card shadow-sm border-0 mb-4">
-        <div class="card-body">
-            <h4 class="fw-bold mb-3" style="color: var(--color-principal);">Tus datos de contacto</h4>
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <label asp-for="Nombre" class="form-label">Nombre y Apellido</label>
-                    <input asp-for="Nombre" class="form-control" placeholder="Ej: Ana Ruiz" />
-                    <span asp-validation-for="Nombre" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Email" class="form-label">Email</label>
-                    <input asp-for="Email" type="email" class="form-control" placeholder="ana@email.com" />
-                    <span asp-validation-for="Email" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Telefono" class="form-label">Teléfono</label>
-                    <input asp-for="Telefono" class="form-control" placeholder="+54 9 11 1234-5678" />
-                    <span asp-validation-for="Telefono" class="text-danger small"></span>
-                </div>
-                <div class="col-md-6">
-                    <label asp-for="Direccion" class="form-label">Dirección de entrega</label>
-                    <input asp-for="Direccion" class="form-control" placeholder="Calle, número, piso" />
-                    <span asp-validation-for="Direccion" class="text-danger small"></span>
-                </div>
-            </div>
         </div>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 p-3 rounded shadow-sm"
-         style="background-color: var(--color-principal); color: white;">
-        <div>
-            <span class="d-block small text-uppercase" style="opacity: .85;">Total del pedido</span>
-            <span class="fs-3 fw-bold" id="totalPedido">$@Model.Total.ToString("N2")</span>
-        </div>
-        <button type="submit" class="btn btn-light btn-lg fw-bold px-4" id="btnConfirmar">
-            Confirmar pedido
-        </button>
-    </div>
-</form>
-
-@section Scripts {
-    <partial name="_ValidationScriptsPartial" />
-    <script>
-        (function () {
-            const inputs = document.querySelectorAll('.cantidad-input');
-            const totalEl = document.getElementById('totalPedido');
-            const btn = document.getElementById('btnConfirmar');
-
-            function recalcular() {
-                let total = 0;
-                let items = 0;
-
-                inputs.forEach(input => {
-                    const cantidad = parseInt(input.value, 10) || 0;
-                    const precio = parseFloat(input.dataset.precio) || 0;
-                    total += cantidad * precio;
-                    if (cantidad > 0) items++;
-                });
-
-                totalEl.textContent = '$' + total.toLocaleString('es-AR', {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                });
-
-                btn.disabled = items === 0;
-                btn.textContent = items === 0 ? 'Elegí al menos una pizza' : 'Confirmar pedido';
-            }
-
-            inputs.forEach(input => input.addEventListener('input', recalcular));
-            recalcular();
-        })();
-    </script>
-}
+    }
+</div>

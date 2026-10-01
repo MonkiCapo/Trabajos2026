@@ -1,0 +1,12 @@
+@model CarritoContadorModel
+
+<li class="nav-item">
+    <a class="nav-link nav-link-custom d-flex align-items-center gap-2"
+       asp-area="" asp-controller="Pedido" asp-action="Resumen">
+        <span>🛒 Carrito</span>
+        @if (Model.HayItems)
+        {
+            <span class="badge rounded-pill text-bg-danger">@Model.CantidadTotal</span>
+        }
+    </a>
+</li>

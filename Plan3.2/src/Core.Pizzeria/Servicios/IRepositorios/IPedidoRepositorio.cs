@@ -15,5 +15,6 @@ public interface IPedidoRepositorio
     Task CrearHistorialAsync(int pedidoId, EstadoPedido estado, string observacion, IDbConnection conexion, IDbTransaction transaction);
     Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, IDbConnection conexion, IDbTransaction transaction);
     Task<Pedido?> ObtenerPedidoPorIdAsync(int id);
+    Task<IEnumerable<HistorialEstadoPedido>> ObtenerHistorialAsync(int pedidoId);
     Task<IEnumerable<Pedido>> ObtenerPedidosAsync();
 }

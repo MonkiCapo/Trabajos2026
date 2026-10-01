@@ -7,7 +7,7 @@ namespace Dapper.Pizzeria;
 
 public class ClienteRepositorio : DapperRepo, IClienteRepositorio
 {
-    public ClienteRepositorio(IAdo _ado) : base(_ado) { }
+    public ClienteRepositorio(IAdo ado) : base(ado) { }
 
     public async Task<int> AgregarClienteAsync(Cliente cliente, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
@@ -15,22 +15,30 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
                     VALUES (@Nombre, @Email, @Telefono, @Direccion);
                     SELECT LAST_INSERT_ID();";
 
-        var conn = conexion ?? Conexion;
-
-        var id = await conn.ExecuteScalarAsync<int>(sql, new
+        var parametros = new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion
-        }, transaction);
-        return id;
+        };
+
+        if (conexion is not null)
+        {
+            return await conexion.ExecuteScalarAsync<int>(sql, parametros, transaction);
+        }
+
+        using var propia = NuevaConexion();
+        return await propia.ExecuteScalarAsync<int>(sql, parametros, transaction);
     }
 
     public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id)
     {
         var sql = @"UPDATE CLIENTE SET Nombre = @Nombre,Email = @Email,Telefono = @Telefono,Direccion = @Direccion WHERE id = @Id;";
-        var rowsAffected = await Conexion.ExecuteAsync(sql, new
+
+        using var conexion = NuevaConexion();
+
+        var rowsAffected = await conexion.ExecuteAsync(sql, new
         {
             cliente.Nombre,
             cliente.Email,
@@ -44,35 +52,51 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
     public async Task<bool> EliminarClienteAsync(int id)
     {
         var sql = "DELETE FROM CLIENTE WHERE id = @Id;";
-        var rowsAffected = await Conexion.ExecuteAsync(sql, new { Id = id });
+
+        using var conexion = NuevaConexion();
+
+        var rowsAffected = await conexion.ExecuteAsync(sql, new { Id = id });
         return rowsAffected > 0;
     }
 
     public async Task<IEnumerable<Cliente>> ObtenerClientesAsync()
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE;";
-        return await Conexion.QueryAsync<Cliente>(sql);
+
+        using var conexion = NuevaConexion();
+
+        return await conexion.QueryAsync<Cliente>(sql);
     }
 
     public async Task<Cliente?> ObtenerClientePorIdAsync(int id)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id;";
-        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
+
+        using var conexion = NuevaConexion();
+
+        return await conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
     }
 
-    public Task<Cliente?> ObtenerClientePorEmailAsync(string email, IDbConnection? conexion = null, IDbTransaction? transaction = null)
+    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE email = @Email;";
 
-        var conn = conexion ?? Conexion;
+        if (conexion is not null)
+        {
+            return await conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email }, transaction);
+        }
 
-        return conn.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email }, transaction);
+        using var propia = NuevaConexion();
+        return await propia.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email }, transaction);
     }
 
     public async Task<bool> ExisteEmailDeClienteAsync(string emailExistente)
     {
         var sql = "SELECT COUNT(1) FROM CLIENTE WHERE email = @Email";
-        var count = await Conexion.ExecuteScalarAsync<int>(sql, new { Email = emailExistente });
+
+        using var conexion = NuevaConexion();
+
+        var count = await conexion.ExecuteScalarAsync<int>(sql, new { Email = emailExistente });
         return count > 0;
     }
 }
