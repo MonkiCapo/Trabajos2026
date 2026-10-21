@@ -1,0 +1,296 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "API Institución - Cursos e Inscripciones",
+    "description": "Colección completa de endpoints para Postman. Gestión de Cursos, Inscripciones, Estudiantes y Docentes según requerimientos y casos de uso.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5282",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Cursos",
+      "item": [
+        {
+          "name": "1.1 Consultar todos los cursos (Catálogo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos"]
+            }
+          }
+        },
+        {
+          "name": "1.2 Consultar cursos abiertos con filtro",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos?estado=Abierto",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos"],
+              "query": [
+                { "key": "estado", "value": "Abierto" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "1.3 Consultar detalle de un curso por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos", "1"]
+            }
+          }
+        },
+        {
+          "name": "1.4 Crear curso (Admin - RF5)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Programación Móvil con .NET MAUI\",\n  \"descripcion\": \"Desarrollo multiplataforma nativo.\",\n  \"cupoMaximo\": 25,\n  \"legajoDocente\": \"DOC-102\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos"]
+            }
+          }
+        },
+        {
+          "name": "1.5 Asignar Docente a Curso (Admin - RF4)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legajoDocente\": \"DOC-101\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/2/docente",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos", "2", "docente"]
+            }
+          }
+        },
+        {
+          "name": "1.6 Cambiar Estado del Curso (Abrir/Cerrar)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"estado\": \"Cerrado\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/1/estado",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos", "1", "estado"]
+            }
+          }
+        },
+        {
+          "name": "1.7 Consultar alumnos inscriptos en un curso (Docente)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/cursos/1/alumnos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "cursos", "1", "alumnos"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Inscripciones",
+      "item": [
+        {
+          "name": "2.1 Inscribir Estudiante (RF2 - Flujo Exitoso con Cupo)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legajoEstudiante\": \"EST-202\",\n  \"idCurso\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inscripciones"]
+            }
+          }
+        },
+        {
+          "name": "2.2 Inscribir Estudiante sin Cupo (Prueba 409 Conflict)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legajoEstudiante\": \"EST-203\",\n  \"idCurso\": 1\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inscripciones"]
+            }
+          }
+        },
+        {
+          "name": "2.3 Consultar Inscripción por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inscripciones", "1"]
+            }
+          }
+        },
+        {
+          "name": "2.4 Cancelar Inscripción (Libera cupo)",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/inscripciones/1/cancelar",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "inscripciones", "1", "cancelar"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Estudiantes",
+      "item": [
+        {
+          "name": "3.1 Listar Estudiantes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/estudiantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "estudiantes"]
+            }
+          }
+        },
+        {
+          "name": "3.2 Obtener Estudiante por Legajo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/estudiantes/EST-201",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "estudiantes", "EST-201"]
+            }
+          }
+        },
+        {
+          "name": "3.3 Registrar Estudiante (RF1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legajo\": \"EST-204\",\n  \"nombre\": \"Ana\",\n  \"apellido\": \"Martínez\",\n  \"email\": \"amartinez@institucion.edu.ar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/estudiantes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "estudiantes"]
+            }
+          }
+        },
+        {
+          "name": "3.4 Consultar Inscripciones de un Estudiante",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/estudiantes/EST-201/inscripciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "estudiantes", "EST-201", "inscripciones"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Docentes",
+      "item": [
+        {
+          "name": "4.1 Listar Docentes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docentes"]
+            }
+          }
+        },
+        {
+          "name": "4.2 Obtener Docente por Legajo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes/DOC-101",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docentes", "DOC-101"]
+            }
+          }
+        },
+        {
+          "name": "4.3 Registrar Docente (RF1)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"legajo\": \"DOC-103\",\n  \"nombre\": \"Roberto\",\n  \"apellido\": \"Sánchez\",\n  \"email\": \"rsanchez@institucion.edu.ar\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docentes"]
+            }
+          }
+        },
+        {
+          "name": "4.4 Consultar Cursos Asignados al Docente (RF3)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/docentes/DOC-101/cursos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "docentes", "DOC-101", "cursos"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

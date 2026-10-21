@@ -1,0 +1,151 @@
+@Host = http://localhost:5282
+
+### =========================================================================
+### 1. CURSOS
+### =========================================================================
+
+### 1.1 Consultar todos los cursos (Catálogo general)
+GET {{Host}}/api/cursos
+Accept: application/json
+
+### 1.2 Consultar solo cursos Abiertos
+GET {{Host}}/api/cursos?estado=Abierto
+Accept: application/json
+
+### 1.3 Buscar cursos por nombre o palabra clave
+GET {{Host}}/api/cursos?buscar=Sistemas
+Accept: application/json
+
+### 1.4 Consultar detalle de un curso por ID (Ej: Curso 1)
+GET {{Host}}/api/cursos/1
+Accept: application/json
+
+### 1.5 Crear un nuevo curso (Administrador - RF5)
+POST {{Host}}/api/cursos
+Content-Type: application/json
+
+{
+  "nombre": "Programación Móvil con .NET MAUI",
+  "descripcion": "Desarrollo de aplicaciones nativas multiplataforma.",
+  "cupoMaximo": 25,
+  "legajoDocente": "DOC-102"
+}
+
+### 1.6 Asignar Docente a un Curso (Administrador - RF4)
+PATCH {{Host}}/api/cursos/2/docente
+Content-Type: application/json
+
+{
+  "legajoDocente": "DOC-101"
+}
+
+### 1.7 Cerrar o Abrir inscripciones de un Curso (Administrador)
+PATCH {{Host}}/api/cursos/1/estado
+Content-Type: application/json
+
+{
+  "estado": "Cerrado"
+}
+
+### 1.8 Consultar alumnos inscriptos en un curso (Docente / Administrador)
+GET {{Host}}/api/cursos/1/alumnos
+Accept: application/json
+
+
+### =========================================================================
+### 2. INSCRIPCIONES
+### =========================================================================
+
+### 2.1 Inscribir un estudiante a un curso (RF2 - Flujo Exitoso con Cupo)
+# El estudiante Lucía Fernández (EST-202) se inscribe en el Curso 1 (que tiene 1 cupo disponible)
+POST {{Host}}/api/inscripciones
+Content-Type: application/json
+
+{
+  "legajoEstudiante": "EST-202",
+  "idCurso": 1
+}
+
+### 2.2 Prueba del <<include>> Verificar Cupo (Debe dar 409 Conflict por cupo agotado)
+# El estudiante Tomás Rodríguez (EST-203) intenta inscribirse al Curso 1 cuando ya no quedan vacantes
+POST {{Host}}/api/inscripciones
+Content-Type: application/json
+
+{
+  "legajoEstudiante": "EST-203",
+  "idCurso": 1
+}
+
+### 2.3 Prueba de Validación: Estudiante ya inscripto (Debe dar 400 Bad Request)
+# Juan Gómez (EST-201) ya está inscripto en el Curso 1
+POST {{Host}}/api/inscripciones
+Content-Type: application/json
+
+{
+  "legajoEstudiante": "EST-201",
+  "idCurso": 1
+}
+
+### 2.4 Consultar detalle de una inscripción por su ID
+GET {{Host}}/api/inscripciones/1
+Accept: application/json
+
+### 2.5 Cancelar una inscripción existente (Libera el cupo en el curso)
+PATCH {{Host}}/api/inscripciones/1/cancelar
+Accept: application/json
+
+
+### =========================================================================
+### 3. ESTUDIANTES
+### =========================================================================
+
+### 3.1 Consultar todos los estudiantes
+GET {{Host}}/api/estudiantes
+Accept: application/json
+
+### 3.2 Consultar un estudiante por Legajo
+GET {{Host}}/api/estudiantes/EST-201
+Accept: application/json
+
+### 3.3 Registrar nuevo estudiante (RF1)
+POST {{Host}}/api/estudiantes
+Content-Type: application/json
+
+{
+  "legajo": "EST-204",
+  "nombre": "Ana",
+  "apellido": "Martínez",
+  "email": "amartinez@institucion.edu.ar"
+}
+
+### 3.4 Consultar historial de inscripciones de un estudiante (consultarInscripciones())
+GET {{Host}}/api/estudiantes/EST-201/inscripciones
+Accept: application/json
+
+
+### =========================================================================
+### 4. DOCENTES
+### =========================================================================
+
+### 4.1 Consultar todos los docentes
+GET {{Host}}/api/docentes
+Accept: application/json
+
+### 4.2 Consultar un docente por Legajo
+GET {{Host}}/api/docentes/DOC-101
+Accept: application/json
+
+### 4.3 Registrar nuevo docente (RF1)
+POST {{Host}}/api/docentes
+Content-Type: application/json
+
+{
+  "legajo": "DOC-103",
+  "nombre": "Roberto",
+  "apellido": "Sánchez",
+  "email": "rsanchez@institucion.edu.ar"
+}
+
+### 4.4 Consultar cursos asignados a un docente (RF3 / consultarCursos())
+GET {{Host}}/api/docentes/DOC-101/cursos
+Accept: application/json
