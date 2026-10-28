@@ -78,6 +78,27 @@ public static class AuthEndpoints
             }
         });
 
+        // 3. GET /api/auth/me/{usuarioId} (Obtener datos del usuario autenticado)
+        group.MapGet("/me/{usuarioId:int}", async (int usuarioId, IAuthService authService, ILoggerFactory loggerFactory) =>
+        {
+            var logger = loggerFactory.CreateLogger("AuthEndpoints");
+            try
+            {
+                var usuario = await authService.ObtenerPerfilAsync(usuarioId);
+                if (usuario == null)
+                {
+                    return Results.NotFound(new { error = $"No se encontro el usuario con id {usuarioId}." });
+                }
+
+                return Results.Ok(usuario);
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "[API] Error al obtener el perfil del usuario {UsuarioId}.", usuarioId);
+                return Results.StatusCode(StatusCodes.Status500InternalServerError);
+            }
+        });
+
         return app;
     }
 }

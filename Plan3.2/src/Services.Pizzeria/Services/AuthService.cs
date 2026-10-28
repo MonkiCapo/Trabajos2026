@@ -92,6 +92,8 @@ public class AuthService : IAuthService
                 ClienteId = clienteId,
                 Nombre = nuevoCliente.Nombre,
                 Email = nuevoUsuario.Email,
+                Telefono = nuevoCliente.Telefono,
+                Direccion = nuevoCliente.Direccion,
                 Rol = nuevoUsuario.Rol
             };
         }
@@ -135,6 +137,30 @@ public class AuthService : IAuthService
             ClienteId = usuario.ClienteId,
             Nombre = cliente?.Nombre ?? string.Empty,
             Email = usuario.Email,
+            Telefono = cliente?.Telefono ?? string.Empty,
+            Direccion = cliente?.Direccion ?? string.Empty,
+            Rol = usuario.Rol
+        };
+    }
+
+    public async Task<UsuarioResponse?> ObtenerPerfilAsync(int usuarioId)
+    {
+        var usuario = await _usuarioRepo.ObtenerPorIdAsync(usuarioId);
+        if (usuario == null)
+        {
+            return null;
+        }
+
+        var cliente = await _clienteRepo.ObtenerClientePorIdAsync(usuario.ClienteId);
+
+        return new UsuarioResponse
+        {
+            UsuarioId = usuario.Id,
+            ClienteId = usuario.ClienteId,
+            Nombre = cliente?.Nombre ?? string.Empty,
+            Email = usuario.Email,
+            Telefono = cliente?.Telefono ?? string.Empty,
+            Direccion = cliente?.Direccion ?? string.Empty,
             Rol = usuario.Rol
         };
     }

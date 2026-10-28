@@ -6,4 +6,5 @@ public interface IAuthService
 {
     Task<UsuarioResponse> RegistrarAsync(RegistroRequest request);
     Task<UsuarioResponse?> LoginAsync(LoginRequest request);
+    Task<UsuarioResponse?> ObtenerPerfilAsync(int usuarioId);
 }
