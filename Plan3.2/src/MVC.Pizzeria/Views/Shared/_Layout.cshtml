@@ -20,6 +20,7 @@
                         aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
+
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
@@ -33,6 +34,32 @@
                         </li>
                         @await Component.InvokeAsync("CarritoContador")
                     </ul>
+                </div>
+
+                @{ var usuario = MVC.Pizzeria.Helpers.UsuarioSessionHelper.ObtenerUsuario(Context.Session); }
+
+                <div class="d-flex align-items-center gap-3 ms-auto">
+                    @if (usuario != null)
+                    {
+                        <span class="fw-semibold text-secondary">
+                            👋 Hola, @usuario.Nombre
+                        </span>
+                        <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-link text-danger p-0 text-decoration-none">
+                                Cerrar sesión
+                            </button>
+                        </form>
+                    }
+                    else
+                    {
+                        <a asp-controller="Auth" asp-action="Login" class="nav-link nav-link-custom">
+                            Iniciar sesión
+                        </a>
+                        <a asp-controller="Auth" asp-action="Registro" class="btn btn-warning btn-sm">
+                            Registrarse
+                        </a>
+                    }
                 </div>
             </div>
         </nav>

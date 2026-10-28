@@ -1,0 +1,34 @@
+@model MVC.Pizzeria.Models.LoginViewModel
+@{
+    ViewData["Title"] = "Iniciar Sesión";
+}
+
+<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700">
+    <h2 class="text-3xl font-extrabold text-center mb-6 text-zinc-900 dark:text-white">🍕 Iniciar Sesión</h2>
+
+    <form asp-action="Login" method="post" class="space-y-4">
+        <input type="hidden" asp-for="ReturnUrl" />
+        <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm font-semibold"></div>
+
+        <div>
+            <label asp-for="Email" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
+            <input asp-for="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-white" placeholder="ejemplo@correo.com" />
+            <span asp-validation-for="Email" class="text-xs text-red-500"></span>
+        </div>
+
+        <div>
+            <label asp-for="Password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Contraseña</label>
+            <input asp-for="Password" type="password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-white" placeholder="••••••••" />
+            <span asp-validation-for="Password" class="text-xs text-red-500"></span>
+        </div>
+
+        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-md transition duration-200">
+            Ingresar
+        </button>
+    </form>
+
+    <p class="text-center text-sm text-zinc-600 dark:text-zinc-400 mt-6">
+        ¿No tenés cuenta? 
+        <a asp-action="Registro" class="text-amber-500 font-semibold hover:underline">Registrate acá</a>
+    </p>
+</div>

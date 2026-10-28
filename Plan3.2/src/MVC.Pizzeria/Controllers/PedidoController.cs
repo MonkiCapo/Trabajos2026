@@ -98,6 +98,7 @@ public class PedidoController : Controller
         return View(_carrito.Obtener());
     }
 
+    [HttpGet]
     public IActionResult Confirmacion()
     {
         var carrito = _carrito.Obtener();
@@ -108,7 +109,19 @@ public class PedidoController : Controller
             return RedirectToAction("Productos", "Home");
         }
 
-        return View(new ConfirmacionViewModel { Carrito = carrito });
+        // Si el usuario está autenticado, pre-cargamos sus datos automáticamente
+        var usuario = UsuarioSessionHelper.ObtenerUsuario(HttpContext.Session);
+
+        var model = new ConfirmacionViewModel
+        {
+            Carrito = carrito,
+            Nombre = usuario?.Nombre ?? string.Empty,
+            Email = usuario?.Email ?? string.Empty,
+            Telefono = usuario?.Telefono ?? string.Empty,
+            Direccion = usuario?.Direccion ?? string.Empty
+        };
+
+        return View(model);
     }
 
     [HttpPost]
