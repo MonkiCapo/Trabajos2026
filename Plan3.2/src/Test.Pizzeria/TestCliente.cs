@@ -13,14 +13,15 @@ public class TestCliente
     IClienteRepositorio repocliente;
 
     [Fact]
-    public void CuandoObtengoLosClientes_DebeRetornarOK()
+    public async Task CuandoObtengoLosClientes_DebeRetornarOK()
     {
         cliente.Direccion = "direccion";
         cliente.Email = "email";
         cliente.Nombre = "nombre";
         cliente.Telefono = "telefono";
-        var clientes = repocliente.ObtenerClientesAsync();
+        var clientes = await repocliente.ObtenerClientesAsync();
 
+        
         
     }
 }
