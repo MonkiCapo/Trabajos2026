@@ -3,32 +3,64 @@
     ViewData["Title"] = "Iniciar Sesión";
 }
 
-<div class="max-w-md mx-auto my-12 p-8 bg-white dark:bg-zinc-800 rounded-2xl shadow-xl border border-zinc-200 dark:border-zinc-700">
-    <h2 class="text-3xl font-extrabold text-center mb-6 text-zinc-900 dark:text-white">🍕 Iniciar Sesión</h2>
+<div class="row justify-content-center my-5">
+    <div class="col-md-6 col-lg-5 col-xl-4">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4 p-sm-5">
+                <div class="text-center mb-4">
+                    <div class="display-5 mb-2">🍕</div>
+                    <h2 class="fw-bold mb-1" style="color: var(--color-principal);">Iniciar Sesión</h2>
+                    <p class="text-muted small">Ingresá tus credenciales para continuar con tu pedido</p>
+                </div>
 
-    <form asp-action="Login" method="post" class="space-y-4">
-        <input type="hidden" asp-for="ReturnUrl" />
-        <div asp-validation-summary="ModelOnly" class="text-red-500 text-sm font-semibold"></div>
+                @if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+                {
+                    <div class="alert alert-danger py-2 small" role="alert">
+                        <div asp-validation-summary="ModelOnly"></div>
+                    </div>
+                }
 
-        <div>
-            <label asp-for="Email" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Email</label>
-            <input asp-for="Email" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-white" placeholder="ejemplo@correo.com" />
-            <span asp-validation-for="Email" class="text-xs text-red-500"></span>
+                @if (TempData["Error"] is string error)
+                {
+                    <div class="alert alert-warning py-2 small" role="alert">
+                        @error
+                    </div>
+                }
+
+                <form asp-action="Login" asp-controller="Auth" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="ReturnUrl" />
+
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label fw-semibold small">Correo Electrónico</label>
+                        <input asp-for="Email" class="form-control form-control-lg fs-6" placeholder="ejemplo@correo.com" autofocus />
+                        <span asp-validation-for="Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-4">
+                        <label asp-for="Password" class="form-label fw-semibold small">Contraseña</label>
+                        <input asp-for="Password" type="password" class="form-control form-control-lg fs-6" placeholder="••••••••" />
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-pizza-primary w-100 py-2 fs-6 shadow-sm">
+                        Ingresar
+                    </button>
+                </form>
+
+                <div class="text-center mt-4 pt-2 border-top">
+                    <p class="text-muted small mb-0">
+                        ¿No tenés cuenta todavía?
+                        <a asp-action="Registro" asp-controller="Auth" asp-route-returnUrl="@Model?.ReturnUrl" class="fw-bold text-decoration-none" style="color: var(--color-principal);">
+                            Registrate acá
+                        </a>
+                    </p>
+                </div>
+            </div>
         </div>
-
-        <div>
-            <label asp-for="Password" class="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1">Contraseña</label>
-            <input asp-for="Password" type="password" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-white" placeholder="••••••••" />
-            <span asp-validation-for="Password" class="text-xs text-red-500"></span>
-        </div>
-
-        <button type="submit" class="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-lg shadow-md transition duration-200">
-            Ingresar
-        </button>
-    </form>
-
-    <p class="text-center text-sm text-zinc-600 dark:text-zinc-400 mt-6">
-        ¿No tenés cuenta? 
-        <a asp-action="Registro" class="text-amber-500 font-semibold hover:underline">Registrate acá</a>
-    </p>
+    </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

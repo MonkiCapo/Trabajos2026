@@ -105,20 +105,25 @@ public class PedidoController : Controller
 
         if (!carrito.HayItems)
         {
-            TempData["Error"] = "Tu carrito esta vacio. Agrega al menos una pizza.";
+            TempData["Error"] = "Tu carrito está vacío. Agrega al menos una pizza.";
             return RedirectToAction("Productos", "Home");
         }
 
-        // Si el usuario está autenticado, pre-cargamos sus datos automáticamente
+        // Si el usuario no está autenticado, lo enviamos al login antes de confirmar
         var usuario = UsuarioSessionHelper.ObtenerUsuario(HttpContext.Session);
+        if (usuario == null)
+        {
+            TempData["Error"] = "Para confirmar tu pedido, por favor iniciá sesión o registrate.";
+            return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Confirmacion", "Pedido") });
+        }
 
         var model = new ConfirmacionViewModel
         {
             Carrito = carrito,
-            Nombre = usuario?.Nombre ?? string.Empty,
-            Email = usuario?.Email ?? string.Empty,
-            Telefono = usuario?.Telefono ?? string.Empty,
-            Direccion = usuario?.Direccion ?? string.Empty
+            Nombre = usuario.Nombre,
+            Email = usuario.Email,
+            Telefono = usuario.Telefono,
+            Direccion = usuario.Direccion
         };
 
         return View(model);
@@ -133,13 +138,23 @@ public class PedidoController : Controller
 
         if (!carrito.HayItems)
         {
-            TempData["Error"] = "Tu carrito esta vacio. Agrega al menos una pizza.";
+            TempData["Error"] = "Tu carrito está vacío. Agrega al menos una pizza.";
             return RedirectToAction("Productos", "Home");
         }
 
-        // Se recarga para que la vista pueda volver a pintar el resumen
-        // aunque falle la validacion o la API.
+        var usuario = UsuarioSessionHelper.ObtenerUsuario(HttpContext.Session);
+        if (usuario == null)
+        {
+            TempData["Error"] = "Debes iniciar sesión para confirmar tu pedido.";
+            return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action("Confirmacion", "Pedido") });
+        }
+
+        // Se asignan los datos del usuario logueado
         model.Carrito = carrito;
+        model.Nombre = usuario.Nombre;
+        model.Email = usuario.Email;
+        if (string.IsNullOrWhiteSpace(model.Telefono)) model.Telefono = usuario.Telefono;
+        if (string.IsNullOrWhiteSpace(model.Direccion)) model.Direccion = usuario.Direccion;
 
         if (!ModelState.IsValid)
         {
@@ -189,7 +204,7 @@ public class PedidoController : Controller
             _carrito.Vaciar();
 
             // Y se deja anotado en la sesion para poder volver a encontrarlo
-            // desde "Mis pedidos", sin login.
+            // desde "Mis pedidos".
             _misPedidos.Registrar(pedidoId);
 
             TempData["Ok"] = "Tu pedido fue confirmado.";
@@ -246,7 +261,6 @@ public class PedidoController : Controller
             return RedirectToAction("Productos", "Home");
         }
     }
-
 
     public async Task<IActionResult> MisPedidos()
     {
