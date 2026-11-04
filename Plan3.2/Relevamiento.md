@@ -7,15 +7,14 @@
 ## 1. Relevamiento Funcional
 
 ### 1.1 Límites del Sistema y Actores
-Para el diseño de casos de uso del sistema distribuido, se identifican los siguientes **Actores Externos** que interactúan con el **Límite del Sistema (Backend / API REST)**.
+De acuerdo al diagrama de casos de uso del sistema, se identifican los siguientes **Actores** que interactúan con el **Límite del Sistema (Pizzería / API Backend)**:
 
 | Actor | Rol | Canal de Comunicación |
 | :--- | :--- | :--- |
-| **Cliente** | Usuario final que selecciona las pizzas, arma y envía la orden. | Aplicación Cliente (C#) → API REST (HTTP) |
-| **Servicio de Cocina** | Proceso independiente automatizado que recibe el pedido y simula la preparación. | Backend → Socket TCP (Mensajes asíncronos) |
-| **Servicio de Reparto** | Proceso independiente que toma el pedido listo y simula la logística de entrega. | Backend → Socket TCP (Mensajes asíncronos) |
+| **Cliente** | Usuario final que consulta las pizzas disponibles, arma su pedido, modifica ítems si lo requiere y realiza la orden de compra. | Aplicación Cliente / Web → API REST (HTTP) |
+| **Administrador** | Encargado del mantenimiento del catálogo comercial: incorpora nuevas pizzas, retira productos discontinuados y gestiona los precios. | Panel de Administración → API REST (HTTP) |
 
-> **Nota de Análisis:** El Backend no se considera un actor, sino el sistema en sí mismo que orquesta el flujo, procesa las peticiones HTTP y delega las tareas a través de sockets a los servicios externos.
+> **Nota de Análisis:** El Backend/API actúa como el límite del sistema que procesa las peticiones de ambos actores, valida las reglas de negocio y garantiza la persistencia en la base de datos.
 
 ### 1.2 Entidades de Negocio
 Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia de los datos, se definen las siguientes entidades:
@@ -24,19 +23,18 @@ Para asegurar que el sistema soporte pedidos reales y mantenga la consistencia d
 * **Pizza:** Actúa como catálogo de productos disponibles en la pizzería (Nombre, Tamaño, Precio base).
 * **ItemPedido (Entidad de Soporte):** Representa la línea intermedia que desacopla la Pizza del Pedido. Permite solicitar múltiples cantidades de una misma pizza y congelar el `precio_unitario` histórico al momento de la compra.
 * **Pedido:** Entidad central que unifica al Cliente, la lista de Items y el estado del ciclo de vida de la orden.
-* **EstadoPedido (Enumerador):** Define estrictamente los estados requeridos: `EsperaConfirmacion`, `EnPreparacion`, `EnViaje`, `Entregado`. Se añade `Cancelado` para el tratamiento de excepciones de red.
+* **EstadoPedido (Enumerador):** Define estrictamente los estados requeridos en la consigna: `EsperaConfirmacion`, `EnPreparacion`, `EnViaje`, `Entregado`.
 
 ### 1.3 Ciclo de Vida del Pedido (Máquina de Estados)
-* **EsperaConfirmacion → EnPreparacion:** Ocurre cuando el Backend procesa la orden y el Servicio de Cocina confirma la recepción exitosa por socket.
-* **EnPreparacion → EnViaje:** Ocurre una vez que la cocina notifica de manera asíncrona que las pizzas están listas.
-* **EnViaje → Entregado:** Fin del ciclo, cuando el repartidor confirma la entrega efectiva al cliente.
-* **Transiciones de Error (Hacia `Cancelado`):** Si durante el estado de *EsperaConfirmacion* el socket con la cocina sufre un timeout o rechazo de conexión, el pedido se cancela para evitar inconsistencias distribuidas.
+* **EsperaConfirmacion → EnPreparacion:** Se produce una vez verificado el stock y confirmada la orden por parte del sistema para su elaboración.
+* **EnPreparacion → EnViaje:** Ocurre cuando el pedido finaliza su tiempo de cocción y pasa a logística de distribución.
+* **EnViaje → Entregado:** Fin del ciclo de vida, al confirmarse la entrega efectiva del pedido en el domicilio del cliente.
 
 ---
 
-## 2. Diagrama de Clases (Arquitectura de Software)
+## 2. Diagrama de Clases UML — Actividad 3
 
-Este diagrama modela los objetos en memoria para la aplicación C#. Se desacopla la lógica de red de las entidades de datos mediante la clase controladora `PedidoService`.
+Este diagrama modela las clases del dominio orientadas a objetos para el sistema de pedidos de la pizzería, cumpliendo estrictamente con los requerimientos de la consigna. Se representan como mínimo las clases **Cliente**, **Pizza** y **Pedido**, incorporando la clase de soporte **ItemPedido** y la enumeración **EstadoPedido**, con sus respectivos atributos, métodos de negocio y relaciones estructurales.
 
 ```mermaid
 classDiagram
@@ -46,6 +44,9 @@ classDiagram
         +string Email
         +string Telefono
         +string Direccion
+        +Pedido RealizarPedido(List~ItemPedido~ items)
+        +void ActualizarDireccion(string nuevaDireccion)
+        +string ObtenerDatosContacto()
     }
 
     class Pizza {
@@ -54,6 +55,9 @@ classDiagram
         +string Tamano
         +decimal Precio
         +List~string~ Ingredientes
+        +decimal ObtenerPrecio()
+        +void ActualizarPrecio(decimal nuevoPrecio)
+        +string ObtenerDescripcion()
     }
 
     class ItemPedido {
@@ -61,7 +65,8 @@ classDiagram
         +int Cantidad
         +decimal PrecioUnitario
         +Pizza Pizza
-        +decimal Subtotal()
+        +decimal CalcularSubtotal()
+        +void ActualizarCantidad(int nuevaCantidad)
     }
 
     class Pedido {
@@ -69,7 +74,12 @@ classDiagram
         +DateTime FechaCreacion
         +EstadoPedido Estado
         +List~ItemPedido~ Items
-        +decimal Total()
+        +decimal Total
+        +void AgregarItem(Pizza pizza, int cantidad)
+        +void QuitarItem(int itemId)
+        +decimal CalcularTotal()
+        +void CambiarEstado(EstadoPedido nuevoEstado)
+        +EstadoPedido ConsultarEstado()
     }
 
     class EstadoPedido {
@@ -78,21 +88,25 @@ classDiagram
         EnPreparacion
         EnViaje
         Entregado
-        Cancelado
     }
 
-    class PedidoService {
-        -ISocketServer socketServer
-        +bool CrearPedido(Pedido nuevoPedido)
-        +void ActualizarEstado(int pedidoId, EstadoPedido nuevoEstado)
-    }
-
-    Cliente "1" --> "0..*" Pedido : tiene
+    Cliente "1" --> "0..*" Pedido : realiza
     Pedido "1" *-- "1..*" ItemPedido : contiene
-    ItemPedido "1" --> "1" Pizza : referencia
-    Pedido "1" --> "1" EstadoPedido : estado
-    PedidoService ..> Pedido : procesa
+    ItemPedido "*" --> "1" Pizza : referencia
+    Pedido "1" --> "1" EstadoPedido : posee
 ```
+
+### 2.1 Descripción de Elementos del Modelo
+
+* **`Cliente`**: Modela al cliente que realiza pedidos. Posee atributos de identificación y localización, y métodos para solicitar nuevos pedidos o actualizar sus datos de entrega.
+* **`Pizza`**: Representa el producto que ofrece la pizzería (con nombre, tamaño, precio e ingredientes) y métodos para consultar su información y tarifario.
+* **`ItemPedido`**: Entidad de soporte que desacopla la Pizza del Pedido, encapsulando la cantidad solicitada, el precio unitario pactado y el cálculo de subtotales (`Cantidad * PrecioUnitario`).
+* **`Pedido`**: Entidad central que nuclea al cliente, la lista de ítems solicitados y el ciclo de vida del pedido mediante sus métodos de cálculo de total y transición de estados.
+* **`EstadoPedido`**: Enumerador que contempla de forma exclusiva los cuatro estados especificados en la consigna:
+  1. `EsperaConfirmacion` (*Espera de confirmación*)
+  2. `EnPreparacion` (*En preparación*)
+  3. `EnViaje` (*En viaje*)
+  4. `Entregado` (*Entregado*)
 
 ---
 
@@ -171,63 +185,153 @@ erDiagram
     ESTADO_PEDIDO ||--o{ HISTORIAL_ESTADO_PEDIDO : "se asigna en"
 ```
 
-## 4. Diagrama de Secuencia del Pedido
+## 4. Diagramas de Secuencia (Basados en Casos de Uso)
 
-Este diagrama describe la interacción entre el cliente, el backend y los servicios de cocina y reparto, destacando el desacople temporal entre la respuesta HTTP y los eventos asíncronos por socket:
+Los siguientes diagramas de secuencia modelan la dinámica temporal y los intercambios de mensajes entre los actores (**Cliente** y **Administrador**), el **Backend (API)** y la **Base de Datos**, reflejando fielmente las especificaciones de los casos de uso del sistema.
+
+---
+
+### 4.1 Diagrama de Secuencia: Caso de Uso "Hacer Pedido" (Actor: Cliente)
+
+Modela el flujo completo desde la visualización del menú, la conformación del carrito, la extensión `<<Extend>> Modificar pedido` y la inclusión obligatoria `<<Include>> Verificar Stock` antes de la confirmación y persistencia del pedido:
 
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Cliente as Cliente (App C#)
-    participant API as Backend (Minimal API)
-    participant Cocina as Servicio Cocina (Socket)
-    participant Reparto as Servicio Reparto (Socket)
+    actor Cliente as Cliente
+    participant Sistema as Sistema Pizzería (API)
+    database BD as Base de Datos / Stock
 
-    %% 1. Solicitud inicial HTTP
-    Cliente->>API: POST /api/pedidos (items, clienteId)
-    activate API
-    API->>API: Validar y persistir Pedido (Estado: EsperaConfirmacion)
+    %% 1. Ver pizzas
+    Cliente->>Sistema: 1. Consultar catálogo de pizzas ("Ver pizzas")
+    activate Sistema
+    Sistema->>BD: Consultar pizzas activas y precios
+    activate BD
+    BD-->>Sistema: Lista de pizzas disponibles
+    deactivate BD
+    Sistema-->>Cliente: Mostrar catálogo de pizzas disponibles
+    deactivate Sistema
 
-    %% 2. Intento de conexión por Socket con Cocina
-    API->>Cocina: Conectar TCP + enviar datos del pedido
-    activate Cocina
+    %% 2. Añadir al carrito
+    Cliente->>Sistema: 2. Seleccionar pizzas y cantidades (Añadir al carrito)
+    activate Sistema
+    Sistema-->>Cliente: Carrito actualizado con los ítems solicitados
+    deactivate Sistema
 
-    alt Flujo normal
-        Cocina-->>API: ACK (recepción exitosa)
-        API->>API: Estado = EnPreparacion
-        API-->>Cliente: HTTP 201 Created (pedidoId, Estado: EnPreparacion)
-        deactivate API
-
-        Note over Cliente, API: La respuesta HTTP se envía de inmediato.<br/>Los cambios de estado siguientes ocurren<br/>de forma asíncrona vía eventos socket.
-
-        %% 3. Evento asíncrono: Cocina termina
-        Note over Cocina: Hilo secundario simula cocción
-        Cocina->>Cocina: Preparar pizza (delay)
-        Cocina-->>API: Socket → "PedidoPreparado"
-        deactivate Cocina
-
-        API->>API: Estado = EnViaje
-
-        %% 4. Asignación a Reparto
-        API->>Reparto: Conectar TCP + asignar logística
-        activate Reparto
-        Note over Reparto: Hilo secundario simula traslado
-        Reparto->>Reparto: Realizar entrega (delay)
-        Reparto-->>API: Socket → "PedidoEntregado"
-        deactivate Reparto
-        API->>API: Estado = Entregado
-
-    else Flujo de error
-        Cocina--x API: Timeout / Conexión rechazada
-        API->>API: Log error + Estado = Cancelado
-        API-->>Cliente: HTTP 503 (Cocina no disponible)
-        deactivate API
+    %% Alternativa: Modificar pedido (<<Extend>>)
+    opt <<Extend>> Modificar Pedido
+        Cliente->>Sistema: Agregar/quitar unidades o cambiar pizzas
+        activate Sistema
+        Sistema->>Sistema: Recalcular subtotales del carrito
+        Sistema-->>Cliente: Carrito modificado y total recalculado
+        deactivate Sistema
     end
 
-    %% 5. Consulta de estado (polling HTTP)
-    Note over Cliente, API: El cliente consulta el estado actual vía GET
-    Cliente->>API: GET /api/pedidos/{id}
-    activate API
-    API-->>Cliente: HTTP 200 (Estado actual del pedido)
-    deactivate API
+    %% 3. Solicitar confirmación
+    Cliente->>Sistema: 3. Confirmar pedido (Enviar orden)
+    activate Sistema
+
+    %% 4. Inclusión: Verificar Stock (<<Include>>)
+    rect rgb(240, 245, 255)
+        Note over Sistema, BD: <<Include>> Verificar Stock
+        Sistema->>BD: Comprobar disponibilidad de pizzas e ingredientes
+        activate BD
+        BD-->>Sistema: Resultado de disponibilidad de stock
+        deactivate BD
+    end
+
+    %% 5 & 6. Evaluación de Stock y Resultado
+    alt Stock disponible (Flujo Principal)
+        Sistema->>BD: Registrar Pedido (Estado: EsperaConfirmacion / EnPreparacion)
+        activate BD
+        Sistema->>BD: Descontar stock e ingredientes utilizados
+        BD-->>Sistema: Pedido registrado con éxito (Id generado)
+        deactivate BD
+        Sistema-->>Cliente: Mensaje de éxito, resumen del pedido y total a pagar
+    else Stock insuficiente (Excepción)
+        Sistema-->>Cliente: Notificar producto sin stock (Permite modificar carrito o cancelar)
+    end
+    deactivate Sistema
 ```
+
+#### Descripción del Flujo "Hacer Pedido":
+1. **Consulta del Menú:** El cliente ejecuta el caso de uso *Ver pizzas* para explorar los productos y precios disponibles.
+2. **Armado de la Orden:** Agrega las pizzas seleccionadas al carrito de compras.
+3. **Modificación Opcional (`<<Extend>>`):** Si el cliente decide realizar cambios previos a la confirmación, se activa el caso de uso *Modificar pedido*, recalculando los montos.
+4. **Verificación de Stock (`<<Include>>`):** Al solicitar la confirmación, el sistema ejecuta de manera obligatoria el caso de uso *Verificar stock* contra la base de datos.
+5. **Postcondición:** Con stock favorable, el pedido se persiste formalmente (avanzando a su preparación), se descuenta el inventario y se entrega el resumen al cliente.
+
+---
+
+### 4.2 Diagrama de Secuencia: Casos de Uso del Administrador ("Agregar / Quitar Pizzas" y "Gestionar Precios")
+
+Modela las operaciones de administración del catálogo comercial, contemplando las validaciones de negocio (campos obligatorios, prevención de nombres duplicados y restricción de eliminación ante pedidos activos):
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Admin as Administrador
+    participant Sistema as Sistema Pizzería (API)
+    database BD as Base de Datos
+
+    Admin->>Sistema: 1. Ingresar a sección de gestión del menú
+    activate Sistema
+    Sistema->>BD: Consultar lista actual de pizzas
+    activate BD
+    BD-->>Sistema: Catálogo actual de pizzas y precios
+    deactivate BD
+    Sistema-->>Admin: Mostrar listado de pizzas
+    deactivate Sistema
+
+    alt Acción A: Agregar nueva pizza
+        Admin->>Sistema: 2a. Enviar datos de nueva pizza (Nombre, ingredientes, tamaño, precio)
+        activate Sistema
+        Sistema->>Sistema: Validar datos obligatorios completos
+        alt Datos válidos y nombre no duplicado
+            Sistema->>BD: Verificar si ya existe pizza con mismo nombre
+            activate BD
+            BD-->>Sistema: No existe duplicado
+            Sistema->>BD: Insertar nueva pizza en catálogo
+            BD-->>Sistema: Registro exitoso
+            deactivate BD
+            Sistema-->>Admin: Confirmación: Pizza agregada exitosamente al catálogo
+        else Error de validación o duplicado (Excepción)
+            Sistema-->>Admin: Error: Campos incompletos o nombre de pizza ya existente
+        end
+        deactivate Sistema
+
+    else Acción B: Quitar pizza existente
+        Admin->>Sistema: 2b. Solicitar eliminación de una pizza del menú
+        activate Sistema
+        Sistema->>BD: Verificar si la pizza integra pedidos activos ("EnPreparacion")
+        activate BD
+        BD-->>Sistema: Estado de pedidos vinculados
+        deactivate BD
+        alt Sin pedidos activos vinculados
+            Sistema->>BD: Eliminar pizza del catálogo (o marcar como inactiva)
+            activate BD
+            BD-->>Sistema: Eliminación exitosa
+            deactivate BD
+            Sistema-->>Admin: Confirmación: Pizza retirada del menú comercial
+        else Tiene pedidos activos en curso (Excepción)
+            Sistema-->>Admin: Rechazar eliminación directa (Sugerir pausar/ocultar del menú)
+        end
+        deactivate Sistema
+
+    else Acción C: Gestionar precios
+        Admin->>Sistema: 2c. Actualizar precio de una pizza (IdPizza, NuevoPrecio)
+        activate Sistema
+        Sistema->>BD: Actualizar precio en catálogo
+        activate BD
+        BD-->>Sistema: Precio actualizado
+        deactivate BD
+        Sistema-->>Admin: Confirmación: Precio actualizado en el menú
+        deactivate Sistema
+    end
+```
+
+#### Descripción del Flujo "Gestión del Administrador":
+1. **Acceso al Catálogo:** El administrador accede al panel y obtiene el listado de productos registrados.
+2. **Agregar Pizza:** Se validan los atributos obligatorios y la unicidad del nombre antes de persistir la nueva variedad en el catálogo.
+3. **Quitar Pizza:** Se asegura la integridad referencial y de negocio impidiendo la eliminación física de pizzas que formen parte de pedidos en curso.
+4. **Gestionar Precios:** Permite ajustar el tarifario de las pizzas de forma inmediata en el sistema.
