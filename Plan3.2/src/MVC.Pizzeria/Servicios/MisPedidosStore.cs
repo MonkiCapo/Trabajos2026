@@ -1,4 +1,5 @@
 using System.Text.Json;
+using MVC.Pizzeria.Helpers;
 using MVC.Pizzeria.Models;
 
 namespace MVC.Pizzeria.Servicios
@@ -7,7 +8,7 @@ namespace MVC.Pizzeria.Servicios
     {
         public const int TOPE = 20;
 
-        private const string CLAVE = "MisPedidos";
+        private const string CLAVE_BASE = "MisPedidos";
 
         private static readonly JsonSerializerOptions OpcionesJson = new(JsonSerializerDefaults.Web);
 
@@ -22,9 +23,17 @@ namespace MVC.Pizzeria.Servicios
             ?? throw new InvalidOperationException(
                 "No hay sesion disponible en el contexto actual. Revisa que app.UseSession() esté en el pipeline y que AddSession() esté registrado.");
 
+        // La lista vive por usuario: al cambiar de cuenta en el mismo navegador
+        // no se filtran los pedidos del usuario anterior.
+        private string ClaveActual()
+        {
+            var usuario = UsuarioSessionHelper.ObtenerUsuario(Session);
+            return usuario is null ? $"{CLAVE_BASE}:anon" : $"{CLAVE_BASE}:{usuario.UsuarioId}";
+        }
+
         public IReadOnlyList<PedidoRegistrado> Obtener()
         {
-            var json = Session.GetString(CLAVE);
+            var json = Session.GetString(ClaveActual());
 
             if (string.IsNullOrWhiteSpace(json))
             {
@@ -38,7 +47,7 @@ namespace MVC.Pizzeria.Servicios
             }
             catch (JsonException)
             {
-                Session.Remove(CLAVE);
+                Session.Remove(ClaveActual());
                 return Array.Empty<PedidoRegistrado>();
             }
         }
@@ -65,12 +74,12 @@ namespace MVC.Pizzeria.Servicios
 
         public void Vaciar()
         {
-            Session.Remove(CLAVE);
+            Session.Remove(ClaveActual());
         }
 
         private void Guardar(IEnumerable<PedidoRegistrado> pedidos)
         {
-            Session.SetString(CLAVE, JsonSerializer.Serialize(pedidos, OpcionesJson));
+            Session.SetString(ClaveActual(), JsonSerializer.Serialize(pedidos, OpcionesJson));
         }
     }
 }

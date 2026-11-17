@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Core.Pizzeria.DTOs;
 using MVC.Pizzeria.Helpers;
 using MVC.Pizzeria.Models;
+using MVC.Pizzeria.Servicios;
 
 namespace MVC.Pizzeria.Controllers;
 
@@ -10,11 +11,13 @@ public class AuthController : Controller
 {
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IConfiguration _configuration;
+    private readonly IMisPedidosStore _misPedidos;
 
-    public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration, IMisPedidosStore misPedidos)
     {
         _httpClientFactory = httpClientFactory;
         _configuration = configuration;
+        _misPedidos = misPedidos;
     }
 
     private string BaseUrl => _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5183";
@@ -158,6 +161,8 @@ public class AuthController : Controller
     [ValidateAntiForgeryToken]
     public IActionResult Logout()
     {
+        // Vaciar antes de eliminar al usuario: la clave de la lista depende del usuario logueado.
+        _misPedidos.Vaciar();
         UsuarioSessionHelper.EliminarUsuario(HttpContext.Session);
         TempData["Ok"] = "Sesión cerrada correctamente.";
         return RedirectToAction("Index", "Home");

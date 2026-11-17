@@ -264,6 +264,11 @@ public class PedidoController : Controller
 
     public async Task<IActionResult> MisPedidos()
     {
+        if (UsuarioSessionHelper.ObtenerUsuario(HttpContext.Session) is null)
+        {
+            return RedirectToAction("Login", "Auth", new { returnUrl = Url.Action(nameof(MisPedidos)) });
+        }
+
         var guardados = _misPedidos.Obtener();
 
         if (guardados.Count == 0)
