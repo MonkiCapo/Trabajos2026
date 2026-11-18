@@ -16,12 +16,15 @@ graph TB
 
     subgraph "Sistema PizzeriaAPI (Límite)"
         UC1["UC-01 Registrar Cliente"]
-        UC2["UC-02 Consultar Pedido"]
-        UC3["UC-03 Realizar Pedido"]
-        UC4["UC-04 Agregar Pizza"]
-        UC5["UC-05 Editar Pizza"]
-        UC6["UC-06 Quitar Pizza"]
-        UC7["UC-07 Cambiar Estado de Pedido"]
+        UC2["UC-02 Visualizar Cliente"]
+        UC3["UC-03 Visualizar Cliente por email"]
+        UC4["UC-04 Consultar Pedido"]
+        UC5["UC-05 Realizar Pedido"]
+        UC6["UC-06 Agregar Pizza"]
+        UC7["UC-07 Editar Pizza"]
+        UC8["UC-08 Quitar Pizza"]
+        UC9["UC-09 Cambiar Pedido"]
+        UC10["UC-10 Cambiar Estado de Pedido"]
     end
 
     CLI --> UC1
