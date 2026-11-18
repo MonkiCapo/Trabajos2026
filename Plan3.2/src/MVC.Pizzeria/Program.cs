@@ -4,7 +4,17 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
-builder.Services.AddHttpClient();
+
+// Cliente tipado para la API: BaseAddress, timeout y serializacion en un
+// solo lugar. Los controladores ya no crean HttpClients a mano. El handler
+// agrega el Bearer con el JWT de la sesion en cada llamada.
+builder.Services.AddTransient<JwtSessionHandler>();
+
+builder.Services.AddHttpClient<PizzeriaApiClient>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5183");
+    client.Timeout = TimeSpan.FromSeconds(10);
+}).AddHttpMessageHandler<JwtSessionHandler>();
 
 // El carrito y la lista de "mis pedidos" viven en la sesion: el usuario no
 // tiene que iniciar sesion, la cookie solo guarda que pizzas eligio, en que

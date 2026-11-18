@@ -1,0 +1,68 @@
+@using Core.Pizzeria.Entidades
+@model List<Tamanio>
+@{
+    ViewData["Title"] = "Tamaños";
+}
+
+<div class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Tamaños 📏</h1>
+        <p class="text-muted mb-0">
+            El precio de cada tamaño es el precio base de la pizza × multiplicador (entre 0.10 y 3.00, máx. 2 decimales).
+            Los pedidos ya confirmados no cambian: guardan su propio precio.
+        </p>
+    </div>
+    <a asp-action="Index" class="btn btn-outline-secondary">Volver al panel</a>
+</div>
+
+@if (TempData["Ok"] is string ok)
+{
+    <div class="alert alert-success" role="alert">@ok</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" asp-validation-summary="All"></div>
+}
+
+<div class="row g-4">
+    @foreach (var tamanio in Model)
+    {
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold mb-0">@tamanio.Nombre</h5>
+                        <span class="badge bg-secondary">×@tamanio.Multiplicador.ToString("0.##")</span>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        Ejemplo: una pizza de $100.00 queda en
+                        $@(100m * tamanio.Multiplicador).ToString("N2") con este tamaño.
+                    </p>
+
+                    <form method="post" asp-action="Tamanios">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@tamanio.Id" />
+                        <div class="input-group">
+                            <span class="input-group-text">×</span>
+                            <input type="number"
+                                   name="multiplicador"
+                                   class="form-control"
+                                   value="@tamanio.Multiplicador.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                   min="0.10"
+                                   max="3.00"
+                                   step="0.01"
+                                   aria-label="Multiplicador de @tamanio.Nombre" />
+                            <button type="submit" class="btn btn-warning">Guardar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>

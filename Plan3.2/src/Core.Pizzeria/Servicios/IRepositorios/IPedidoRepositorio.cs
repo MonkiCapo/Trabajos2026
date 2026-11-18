@@ -12,9 +12,10 @@ public interface IPedidoRepositorio
 {
     Task<int> CrearPedidoAsync(Pedido pedido, IDbConnection conexion, IDbTransaction transaction);
     Task CrearItemsPedidoAsync(List<ItemPedido> items, int pedidoId, IDbConnection conexion, IDbTransaction transaction);
+    Task CrearAjustesAsync(int itemPedidoId, IEnumerable<int> ingredienteIds, string tipo, IDbConnection conexion, IDbTransaction transaction);
     Task CrearHistorialAsync(int pedidoId, EstadoPedido estado, string observacion, IDbConnection conexion, IDbTransaction transaction);
-    Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, IDbConnection conexion, IDbTransaction transaction);
+    Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido estadoActual, EstadoPedido nuevoEstado, IDbConnection conexion, IDbTransaction transaction);
     Task<Pedido?> ObtenerPedidoPorIdAsync(int id);
+    Task<Pedido?> ObtenerPedidoPorIdAsync(int id, IDbConnection conexion, IDbTransaction? transaction);
     Task<IEnumerable<HistorialEstadoPedido>> ObtenerHistorialAsync(int pedidoId);
-    Task<IEnumerable<Pedido>> ObtenerPedidosAsync();
 }

@@ -41,6 +41,12 @@
                 <div class="d-flex align-items-center gap-3 ms-auto">
                     @if (usuario != null)
                     {
+                        @if (string.Equals(usuario.Rol, "Admin", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <a asp-controller="Admin" asp-action="Index" class="btn btn-outline-danger btn-sm fw-semibold">
+                                Panel admin
+                            </a>
+                        }
                         <span class="fw-semibold text-secondary">
                             👋 Hola, @usuario.Nombre
                         </span>

@@ -4,6 +4,7 @@ using FluentValidation;
 using Microsoft.Extensions.Logging;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
+using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.IRepositorios;
 using Core.Pizzeria.Servicios.IService;
 
@@ -18,6 +19,7 @@ public class AuthService : IAuthService
     private readonly IAdo _ado;
     private readonly IValidator<RegistroRequest> _validadorRegistro;
     private readonly IValidator<LoginRequest> _validadorLogin;
+    private readonly TokenService _tokenService;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(
@@ -26,6 +28,7 @@ public class AuthService : IAuthService
         IAdo ado,
         IValidator<RegistroRequest> validadorRegistro,
         IValidator<LoginRequest> validadorLogin,
+        TokenService tokenService,
         ILogger<AuthService> logger)
     {
         _usuarioRepo = usuarioRepo;
@@ -33,10 +36,11 @@ public class AuthService : IAuthService
         _ado = ado;
         _validadorRegistro = validadorRegistro;
         _validadorLogin = validadorLogin;
+        _tokenService = tokenService;
         _logger = logger;
     }
 
-    public async Task<UsuarioResponse> RegistrarAsync(RegistroRequest request)
+    public async Task<AuthResponse> RegistrarAsync(RegistroRequest request)
     {
         var validationResult = await _validadorRegistro.ValidateAsync(request);
         if (!validationResult.IsValid)
@@ -83,10 +87,10 @@ public class AuthService : IAuthService
 
             transaction.Commit();
 
-            _logger.LogInformation("[AUTHSERVICE] Usuario registrado: {Email} (UsuarioId: {UsuarioId}, ClienteId: {ClienteId})", nuevoUsuario.Email, usuarioId, clienteId);
+            _logger.LogInformation("[AUTHSERVICE] Usuario registrado: {Email} (UsuarioId: {UsuarioId}, ClienteId: {ClienteId})", Pii.AnonimizarEmail(nuevoUsuario.Email), usuarioId, clienteId);
 
             // Nunca se devuelve el PasswordHash
-            return new UsuarioResponse
+            var usuario = new UsuarioResponse
             {
                 UsuarioId = usuarioId,
                 ClienteId = clienteId,
@@ -96,16 +100,22 @@ public class AuthService : IAuthService
                 Direccion = nuevoCliente.Direccion,
                 Rol = nuevoUsuario.Rol
             };
+
+            return new AuthResponse
+            {
+                Token = _tokenService.GenerarToken(usuario),
+                Usuario = usuario
+            };
         }
         catch (Exception ex)
         {
             transaction.Rollback();
-            _logger.LogError(ex, "[AUTHSERVICE] Error al registrar al usuario {Email}.", request.Email);
+            _logger.LogError(ex, "[AUTHSERVICE] Error al registrar al usuario {Email}.", Pii.AnonimizarEmail(request.Email));
             throw;
         }
     }
 
-    public async Task<UsuarioResponse?> LoginAsync(LoginRequest request)
+    public async Task<AuthResponse?> LoginAsync(LoginRequest request)
     {
         var validationResult = await _validadorLogin.ValidateAsync(request);
         if (!validationResult.IsValid)
@@ -116,22 +126,22 @@ public class AuthService : IAuthService
         var usuario = await _usuarioRepo.ObtenerPorEmailAsync(request.Email);
         if (usuario == null)
         {
-            _logger.LogWarning("[AUTHSERVICE] Intento de login con email no registrado: {Email}", request.Email);
+            _logger.LogWarning("[AUTHSERVICE] Intento de login con email no registrado: {Email}", Pii.AnonimizarEmail(request.Email));
             return null;
         }
 
         // Se verifica el hash contra la contraseña enviada
         if (!BCrypt.Net.BCrypt.Verify(request.Password, usuario.PasswordHash))
         {
-            _logger.LogWarning("[AUTHSERVICE] Contraseña incorrecta para el email {Email}", request.Email);
+            _logger.LogWarning("[AUTHSERVICE] Contraseña incorrecta para el email {Email}", Pii.AnonimizarEmail(request.Email));
             return null;
         }
 
         var cliente = await _clienteRepo.ObtenerClientePorIdAsync(usuario.ClienteId);
 
-        _logger.LogInformation("[AUTHSERVICE] Login exitoso: {Email} (Rol: {Rol})", usuario.Email, usuario.Rol);
+        _logger.LogInformation("[AUTHSERVICE] Login exitoso: {Email} (Rol: {Rol})", Pii.AnonimizarEmail(usuario.Email), usuario.Rol);
 
-        return new UsuarioResponse
+        var respuesta = new UsuarioResponse
         {
             UsuarioId = usuario.Id,
             ClienteId = usuario.ClienteId,
@@ -140,6 +150,12 @@ public class AuthService : IAuthService
             Telefono = cliente?.Telefono ?? string.Empty,
             Direccion = cliente?.Direccion ?? string.Empty,
             Rol = usuario.Rol
+        };
+
+        return new AuthResponse
+        {
+            Token = _tokenService.GenerarToken(respuesta),
+            Usuario = respuesta
         };
     }
 

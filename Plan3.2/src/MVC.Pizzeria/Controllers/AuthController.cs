@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
 using Core.Pizzeria.DTOs;
 using MVC.Pizzeria.Helpers;
@@ -9,18 +8,14 @@ namespace MVC.Pizzeria.Controllers;
 
 public class AuthController : Controller
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly PizzeriaApiClient _api;
     private readonly IMisPedidosStore _misPedidos;
 
-    public AuthController(IHttpClientFactory httpClientFactory, IConfiguration configuration, IMisPedidosStore misPedidos)
+    public AuthController(PizzeriaApiClient api, IMisPedidosStore misPedidos)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _api = api;
         _misPedidos = misPedidos;
     }
-
-    private string BaseUrl => _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5183";
 
     // GET: /Auth/Login
     [HttpGet]
@@ -48,40 +43,32 @@ public class AuthController : Controller
             return View(model);
         }
 
-        try
+        var resultado = await _api.LoginAsync(new LoginRequest
         {
-            var client = _httpClientFactory.CreateClient();
-            var response = await client.PostAsJsonAsync($"{BaseUrl}/api/auth/login", new LoginRequest
+            Email = model.Email,
+            Password = model.Password
+        });
+
+        if (resultado.Exito && resultado.Datos is not null)
+        {
+            UsuarioSessionHelper.GuardarUsuario(HttpContext.Session, resultado.Datos.Usuario);
+            UsuarioSessionHelper.GuardarToken(HttpContext.Session, resultado.Datos.Token);
+            TempData["Ok"] = $"¡Bienvenido de nuevo, {resultado.Datos.Usuario.Nombre}!";
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
-                Email = model.Email,
-                Password = model.Password
-            });
-
-            if (response.IsSuccessStatusCode)
-            {
-                var usuario = await response.Content.ReadFromJsonAsync<UsuarioResponse>();
-                if (usuario != null)
-                {
-                    UsuarioSessionHelper.GuardarUsuario(HttpContext.Session, usuario);
-                    TempData["Ok"] = $"¡Bienvenido de nuevo, {usuario.Nombre}!";
-
-                    if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-                    {
-                        return Redirect(model.ReturnUrl);
-                    }
-
-                    return RedirectToAction("Productos", "Home");
-                }
+                return Redirect(model.ReturnUrl);
             }
 
-            ModelState.AddModelError(string.Empty, "Email o contraseña incorrectos.");
-            return View(model);
+            return RedirectToAction("Productos", "Home");
         }
-        catch (HttpRequestException)
+
+        foreach (var (clave, mensaje) in resultado.Errores)
         {
-            ModelState.AddModelError(string.Empty, "No pudimos conectar con el servidor de la API.");
-            return View(model);
+            ModelState.AddModelError(clave, mensaje);
         }
+
+        return View(model);
     }
 
     // GET: /Auth/Registro
@@ -110,50 +97,35 @@ public class AuthController : Controller
             return View(model);
         }
 
-        try
+        var resultado = await _api.RegistroAsync(new RegistroRequest
         {
-            var client = _httpClientFactory.CreateClient();
-            var request = new RegistroRequest
+            Nombre = model.Nombre,
+            Email = model.Email,
+            Telefono = model.Telefono,
+            Direccion = model.Direccion,
+            Password = model.Password
+        });
+
+        if (resultado.Exito && resultado.Datos is not null)
+        {
+            UsuarioSessionHelper.GuardarUsuario(HttpContext.Session, resultado.Datos.Usuario);
+            UsuarioSessionHelper.GuardarToken(HttpContext.Session, resultado.Datos.Token);
+            TempData["Ok"] = $"¡Cuenta creada con éxito! Bienvenido, {resultado.Datos.Usuario.Nombre}.";
+
+            if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
             {
-                Nombre = model.Nombre,
-                Email = model.Email,
-                Telefono = model.Telefono,
-                Direccion = model.Direccion,
-                Password = model.Password
-            };
-
-            var response = await client.PostAsJsonAsync($"{BaseUrl}/api/auth/registro", request);
-
-            if (response.IsSuccessStatusCode)
-            {
-                var usuario = await response.Content.ReadFromJsonAsync<UsuarioResponse>();
-                if (usuario != null)
-                {
-                    UsuarioSessionHelper.GuardarUsuario(HttpContext.Session, usuario);
-                    TempData["Ok"] = $"¡Cuenta creada con éxito! Bienvenido, {usuario.Nombre}.";
-
-                    if (!string.IsNullOrWhiteSpace(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
-                    {
-                        return Redirect(model.ReturnUrl);
-                    }
-
-                    return RedirectToAction("Productos", "Home");
-                }
+                return Redirect(model.ReturnUrl);
             }
 
-            var errorObj = await response.Content.ReadFromJsonAsync<Dictionary<string, object>>();
-            var errorMsg = errorObj != null && errorObj.TryGetValue("error", out var err)
-                ? err?.ToString()
-                : "Error al registrar la cuenta. Es posible que el email ya exista.";
+            return RedirectToAction("Productos", "Home");
+        }
 
-            ModelState.AddModelError(string.Empty, errorMsg ?? "Error al registrarse.");
-            return View(model);
-        }
-        catch (HttpRequestException)
+        foreach (var (clave, mensaje) in resultado.Errores)
         {
-            ModelState.AddModelError(string.Empty, "No pudimos conectar con la API.");
-            return View(model);
+            ModelState.AddModelError(clave, mensaje);
         }
+
+        return View(model);
     }
 
     // POST: /Auth/Logout
@@ -164,6 +136,7 @@ public class AuthController : Controller
         // Vaciar antes de eliminar al usuario: la clave de la lista depende del usuario logueado.
         _misPedidos.Vaciar();
         UsuarioSessionHelper.EliminarUsuario(HttpContext.Session);
+        UsuarioSessionHelper.EliminarToken(HttpContext.Session);
         TempData["Ok"] = "Sesión cerrada correctamente.";
         return RedirectToAction("Index", "Home");
     }

@@ -59,16 +59,32 @@ else
                                         <div>
                                             <div class="fw-semibold">@item.Nombre</div>
                                             <div class="text-muted small">@item.Tamanio</div>
+                                            @if (item.Quitar.Count > 0)
+                                            {
+                                                <div class="text-muted small">Sin: @string.Join(", ", item.Quitar)</div>
+                                            }
+                                            @if (item.Extras.Count > 0)
+                                            {
+                                                <div class="text-muted small">Extras: @string.Join(", ", item.Extras)</div>
+                                            }
                                         </div>
                                     </div>
                                 </td>
-                                <td class="text-end">$@item.Precio.ToString("N2")</td>
+                                <td class="text-end">
+                                    <div class="fw-semibold">$@item.PrecioUnitario.ToString("N2")</div>
+                                    @if (item.TieneAjustes)
+                                    {
+                                        <div class="text-muted small">
+                                            base $@item.Precio.ToString("N2") + $@item.Recargo.ToString("N2")
+                                        </div>
+                                    }
+                                </td>
                                 <td>
                                     @* Cada linea actualiza la sesion y vuelve al resumen (PRG). *@
                                     <form method="post" asp-action="Actualizar" asp-controller="Pedido"
                                           class="d-flex gap-2">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="pizzaId" value="@item.PizzaId" />
+                                        <input type="hidden" name="lineaId" value="@item.LineaId" />
                                         <input type="number"
                                                name="cantidad"
                                                class="form-control form-control-sm"
@@ -86,7 +102,7 @@ else
                                 <td class="text-end pe-4">
                                     <form method="post" asp-action="Quitar" asp-controller="Pedido">
                                         @Html.AntiForgeryToken()
-                                        <input type="hidden" name="pizzaId" value="@item.PizzaId" />
+                                        <input type="hidden" name="lineaId" value="@item.LineaId" />
                                         <button type="submit" class="btn btn-outline-danger btn-sm"
                                                 title="Quitar del carrito">
                                             Quitar

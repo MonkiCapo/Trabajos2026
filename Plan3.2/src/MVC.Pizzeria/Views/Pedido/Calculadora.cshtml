@@ -1,0 +1,207 @@
+@using Core.Pizzeria.Servicios
+@model MVC.Pizzeria.Models.CalculadoraViewModel
+@{
+    ViewData["Title"] = "Calculadora de hambre";
+    var haySugerencia = Model.Sugerencia.Count > 0;
+
+    var tamaniosPorNombre = Model.Tamanios.ToDictionary(t => t.Nombre, StringComparer.OrdinalIgnoreCase);
+    var lineasJson = System.Text.Json.JsonSerializer.Serialize(Model.Sugerencia.Select(linea => new
+    {
+        c = linea.Cantidad,
+        m = tamaniosPorNombre.TryGetValue(linea.Tamanio, out var tamanio) ? tamanio.Multiplicador : 0m
+    }));
+
+    var textoPersonas = Model.Personas == 1 ? "persona" : "personas";
+    var textoNinos = Model.Ninos == 1 ? "niño" : "niños";
+    var textoPorciones = Model.PorcionesNecesarias == 1 ? "porción" : "porciones";
+    var textoHambre = Model.NivelHambre switch
+    {
+        NivelHambre.Poco => "poca hambre",
+        NivelHambre.Mucho => "mucha hambre",
+        _ => "hambre normal"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">¿Cuántas pido? 🧮</h1>
+        <p class="text-muted mb-0">
+            Contanos cuántos son y cuánta hambre tienen: te sugerimos cuántas pizzas de cada tamaño pedir.
+        </p>
+    </div>
+    <a asp-action="Productos" asp-controller="Home" class="btn btn-outline-secondary">Volver al menú</a>
+</div>
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h5 class="fw-bold mb-3" style="color: var(--color-principal);">El cuestionario</h5>
+
+                <form method="post" asp-action="Calculadora" asp-controller="Pedido">
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+                        <label asp-for="Personas" class="form-label fw-semibold">¿Cuántos adultos comen?</label>
+                        <input asp-for="Personas" class="form-control" min="1" max="20" step="1" />
+                        <span asp-validation-for="Personas" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Ninos" class="form-label fw-semibold">¿Y niños?</label>
+                        <input asp-for="Ninos" class="form-control" min="0" max="20" step="1" />
+                        <span asp-validation-for="Ninos" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NivelHambre" class="form-label fw-semibold">¿Cuánta hambre tienen?</label>
+                        <select asp-for="NivelHambre" class="form-select">
+                            <option value="Poco">Poca (solo un picoteo)</option>
+                            <option value="Normal">Normal</option>
+                            <option value="Mucho">Mucha (vengo con hambre)</option>
+                        </select>
+                        <span asp-validation-for="NivelHambre" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-pizza-primary w-100">Calcular 🧮</button>
+                </form>
+
+                <p class="text-muted small mt-3 mb-0">
+                    Como referencia: cada Grande rinde 8 porciones; cada Mediano, 6; y cada Chico, 4.
+                    Cada persona come entre 1 y 4 porciones según el hambre (los niños, un poco menos).
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        @if (haySugerencia)
+        {
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-3" style="color: var(--color-principal);">Nuestra sugerencia</h5>
+
+                    <p class="mb-3">
+                        Para <strong>@Model.Personas @textoPersonas</strong>
+                        @if (Model.Ninos > 0)
+                        {
+                            <text> y <strong>@Model.Ninos @textoNinos</strong></text>
+                        }
+                        con <strong>@textoHambre</strong> necesitás
+                        <strong>@Model.PorcionesNecesarias @textoPorciones</strong>:
+                    </p>
+
+                    <div class="mb-3">
+                        @foreach (var linea in Model.Sugerencia)
+                        {
+                            var porciones = tamaniosPorNombre.TryGetValue(linea.Tamanio, out var tamanioLinea)
+                                ? CalculadoraHambre.PorcionesPorTamanio(tamanioLinea)
+                                : 0;
+                            <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                                <span class="fw-semibold fs-5">@linea.Cantidad × @linea.Tamanio</span>
+                                <span class="text-muted small">@porciones @(porciones == 1 ? "porción" : "porciones") c/u</span>
+                            </div>
+                        }
+                    </div>
+
+                    <form method="post" asp-action="CalculadoraAgregar" asp-controller="Pedido">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="Personas" value="@Model.Personas" />
+                        <input type="hidden" name="Ninos" value="@Model.Ninos" />
+                        <input type="hidden" name="NivelHambre" value="@Model.NivelHambre" />
+
+                        <label for="pizza-select" class="form-label fw-semibold">¿De qué pizza?</label>
+                        <select name="PizzaId" id="pizza-select" class="form-select mb-3" aria-label="Elegir pizza">
+                            <option value="0">Elegí una pizza…</option>
+                            @foreach (var pizza in Model.Pizzas)
+                            {
+                                <option value="@pizza.Id"
+                                        data-precio="@pizza.Precio.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)"
+                                        selected="@(pizza.Id == Model.PizzaId)">
+                                    @pizza.Nombre
+                                </option>
+                            }
+                        </select>
+
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="fw-semibold">Total estimado</span>
+                            <span class="fw-bold text-success fs-5" id="precio-total">
+                                @if (Model.PrecioTotal > 0)
+                                {
+                                    <text>$@Model.PrecioTotal.ToString("N2")</text>
+                                }
+                                else
+                                {
+                                    <text>Elegí una pizza…</text>
+                                }
+                            </span>
+                        </div>
+
+                        <button type="submit" id="btn-agregar-calculadora" class="btn btn-success w-100"
+                                @(Model.PizzaId > 0 ? "" : "disabled")>
+                            Agregar al carrito 🛒
+                        </button>
+                        <div class="text-muted small mt-2">
+                            La API recalcula el precio final al confirmar el pedido.
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-4 text-center">
+                    <p class="text-muted mb-0">
+                        Completá el cuestionario y tocá "Calcular" para ver la sugerencia.
+                    </p>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@if (haySugerencia)
+{
+    <script>
+        (function () {
+            var select = document.getElementById("pizza-select");
+            var totalEl = document.getElementById("precio-total");
+            var boton = document.getElementById("btn-agregar-calculadora");
+
+            // Las lineas de la sugerencia vienen del servidor (reglas de Core):
+            // aca solo se usa la cantidad y el multiplicador para estimar el
+            // precio de la pizza elegida. El precio definitivo lo calcula la API.
+            var lineas = JSON.parse('@Html.Raw(lineasJson)') || [];
+
+            var formatear = function (valor) {
+                return "$" + valor.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            };
+
+            var recalcular = function () {
+                var opcion = select.options[select.selectedIndex];
+                var base = parseFloat(opcion.getAttribute("data-precio")) || 0;
+
+                if (base > 0) {
+                    var total = 0;
+                    lineas.forEach(function (linea) {
+                        total += linea.c * Math.round(base * linea.m * 100) / 100;
+                    });
+                    totalEl.textContent = formatear(total);
+                } else {
+                    totalEl.textContent = "Elegí una pizza…";
+                }
+
+                boton.disabled = select.value === "0";
+            };
+
+            select.addEventListener("change", recalcular);
+            recalcular();
+        })();
+    </script>
+}

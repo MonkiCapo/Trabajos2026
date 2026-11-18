@@ -1,8 +1,7 @@
-namespace MVC.Pizzeria.Models
+namespace MVC.Pizzeria.Models;
+
+public class CarritoContadorModel
 {
-    public class CarritoContadorModel
-    {
-        public int CantidadTotal { get; set; }
-        public bool HayItems { get; set; }
-    }
+    public int CantidadTotal { get; set; }
+    public bool HayItems { get; set; }
 }

@@ -1,25 +1,20 @@
 using System.Diagnostics;
-using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
+using Core.Pizzeria.Entidades;
 using MVC.Pizzeria.Helpers;
 using MVC.Pizzeria.Models;
-using Core.Pizzeria.Entidades;
+using MVC.Pizzeria.Servicios;
 
 namespace MVC.Pizzeria.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
+    private readonly PizzeriaApiClient _api;
 
-    public HomeController(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public HomeController(PizzeriaApiClient api)
     {
-        _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
+        _api = api;
     }
-
-    private string BaseUrl => _configuration["ApiSettings:BaseUrl"] ?? "http://localhost:5183";
 
     public IActionResult Index()
     {
@@ -28,35 +23,35 @@ public class HomeController : Controller
 
     public async Task<IActionResult> Productos()
     {
-        List<Pizza> pizzas;
+        var resultado = await _api.ObtenerPizzasAsync();
 
-        try
+        if (!resultado.Exito)
         {
-            var client = _httpClientFactory.CreateClient();
-            pizzas = await client.GetFromJsonAsync<List<Pizza>>($"{BaseUrl}/api/pizzas") ?? new List<Pizza>();
-        }
-        catch (HttpRequestException)
-        {
-            ViewData["Error"] = $"No pudimos conectar con la API ({BaseUrl}). El catalogo esta vacio.";
-            pizzas = new List<Pizza>();
-        }
-        catch (TaskCanceledException)
-        {
-            ViewData["Error"] = "La API tardo demasiado en responder. El catalogo esta vacio.";
-            pizzas = new List<Pizza>();
+            ViewData["Error"] = $"{resultado.Errores[0].Mensaje} El catalogo esta vacio.";
+            return View(new CatalogoViewModel());
         }
 
-        var modelo = pizzas.Select(p => new PizzaViewModel
-        {
-            Id = p.Id,
-            Nombre = p.Nombre,
-            Tamanio = p.Tamanio,
-            Precio = p.Precio,
-            Ingredientes = p.Ingredientes,
-            ImagenUrl = PizzaImagen.UrlDe(p.Id)
-        }).ToList();
+        var pizzas = resultado.Datos!
+            .Select(p => new PizzaViewModel
+            {
+                Id = p.Id,
+                Nombre = p.Nombre,
+                Tamanio = p.Tamanio,
+                Precio = p.Precio,
+                Ingredientes = p.Ingredientes,
+                ImagenUrl = PizzaImagen.UrlDe(p.Id)
+            })
+            .ToList();
 
-        return View(modelo);
+        // Los tamanios alimentan el selector de cada tarjeta. Si la API no
+        // responde, el catalogo igual se muestra con el precio base (Grande):
+        // la API vuelve a validar el tamanio al confirmar el pedido.
+        var tamaniosResultado = await _api.ObtenerTamaniosAsync();
+        var tamanios = tamaniosResultado.Exito && tamaniosResultado.Datos is { Count: > 0 }
+            ? tamaniosResultado.Datos
+            : new List<Tamanio> { new() { Id = 1, Nombre = "Grande", Multiplicador = 1m } };
+
+        return View(new CatalogoViewModel { Pizzas = pizzas, Tamanios = tamanios });
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

@@ -1,7 +1,6 @@
-namespace MVC.Pizzeria.Helpers
+namespace MVC.Pizzeria.Helpers;
+
+public static class PizzaImagen
 {
-    public static class PizzaImagen
-    {
-        public static string UrlDe(int pizzaId) => $"/images/pizza-{pizzaId}.jpg";
-    }
+    public static string UrlDe(int pizzaId) => $"/images/pizza-{pizzaId}.jpg";
 }

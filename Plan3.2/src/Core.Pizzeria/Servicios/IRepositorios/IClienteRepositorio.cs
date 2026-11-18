@@ -9,11 +9,9 @@ namespace Core.Pizzeria.Servicios.IRepositorios;
 
 public interface IClienteRepositorio
 {
-    Task<IEnumerable<Cliente>> ObtenerClientesAsync();
-    Task<Cliente?> ObtenerClientePorIdAsync(int id);
+    Task<Cliente?> ObtenerClientePorIdAsync(int id, IDbConnection? conexion = null, IDbTransaction? transaction = null);
     Task<Cliente?> ObtenerClientePorEmailAsync(string email, IDbConnection? conexion = null, IDbTransaction? transaction = null);
     Task<int> AgregarClienteAsync(Cliente cliente, IDbConnection? conexion = null, IDbTransaction? transaction = null);
-    Task<bool> ActualizarClienteAsync(Cliente cliente, int id);
-    Task<bool> EliminarClienteAsync(int id);
+    Task<bool> ActualizarClienteAsync(Cliente cliente, int id, IDbConnection? conexion = null, IDbTransaction? transaction = null);
     Task<bool> ExisteEmailDeClienteAsync(string emailExistente);
 }

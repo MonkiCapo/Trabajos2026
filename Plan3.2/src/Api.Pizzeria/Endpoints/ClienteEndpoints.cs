@@ -1,56 +1,51 @@
-using FluentValidation;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.Extensions.Logging;
-using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Servicios.IService;
 
 namespace Api.Pizzeria.Endpoints;
 
 public static class ClienteEndpoints
 {
+    private const string CLAIM_CLIENTE_ID = "ClienteId";
+
     public static IEndpointRouteBuilder MapClienteEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/clientes");
 
-        // 1. POST /api/clientes (Registrar cliente)
-        group.MapPost("/", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, IClienteService clienteService, ILoggerFactory loggerFactory) =>
-        {
-            var logger = loggerFactory.CreateLogger("ClienteEndpoints");
-            var validation = await validator.ValidateAsync(clienteRequest);
-            if (!validation.IsValid)
-            {
-                return Results.ValidationProblem(validation.ToDictionary());
-            }
-
-            try
-            {
-                var cliente = await clienteService.AgregarClienteAsync(clienteRequest);
-                logger.LogInformation("[API] Nuevo cliente registrado: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
-                return Results.Created($"/api/clientes/{cliente.Id}", cliente);
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "[API] Error al registrar cliente.");
-                return Results.StatusCode(StatusCodes.Status500InternalServerError);
-            }
-        });
+        // POST /api/clientes fue eliminado (decision 2026-11-18): creaba
+        // clientes "huerfanos" sin usuario. UC-01 queda cubierto por
+        // POST /api/auth/registro, que crea CLIENTE + USUARIO en una transaccion.
 
         // GET /api/clientes/{id} (Obtener cliente por ID)
-        group.MapGet("/{id:int}", async (int id, IClienteService clienteService) =>
+        // Ownership: los datos (email, telefono, direccion) son privados, asi
+        // que solo el propio cliente (o un Admin) puede verlos; el 403 no
+        // revela si el id existe o no.
+        group.MapGet("/{id:int}", async (int id, IClienteService clienteService, HttpContext httpContext) =>
         {
+            if (!EsElPropioCliente(httpContext, id) && !httpContext.User.IsInRole("Admin"))
+            {
+                return Results.Forbid();
+            }
+
             var cliente = await clienteService.ObtenerClientePorIdAsync(id);
             return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
-        });
+        }).RequireAuthorization();
 
-        // GET /api/clientes/email/{email} (Obtener cliente por email)
+        // GET /api/clientes/email/{email} (Obtener cliente por email) — solo Admin
         group.MapGet("/email/{email}", async (string email, IClienteService clienteService) =>
         {
             var cliente = await clienteService.ObtenerClientePorEmailAsync(email);
             return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
-        });
+        }).RequireAuthorization("Admin");
 
         return app;
+    }
+
+    private static bool EsElPropioCliente(HttpContext httpContext, int clienteId)
+    {
+        var claim = httpContext.User.FindFirstValue(CLAIM_CLIENTE_ID);
+        return int.TryParse(claim, out var clienteIdDelToken) && clienteIdDelToken == clienteId;
     }
 }

@@ -1,43 +1,50 @@
-namespace MVC.Pizzeria.Helpers
+using Core.Pizzeria.Servicios.Enum;
+
+namespace MVC.Pizzeria.Helpers;
+
+// Traduccion del estado a UI (badge, texto y orden). El enum EstadoPedido es
+// la unica fuente de verdad: las vistas siguen pasando el string que viene
+// de la API y aca se lo interpreta contra el enum.
+public static class EstadoPedidoUI
 {
-    public static class EstadoPedidoUI
+    public static string BadgeDe(string? estado) =>
+        Enum.TryParse<EstadoPedido>(estado, out var valor) ? BadgeDe(valor) : "bg-secondary";
+
+    public static string NombreDe(string? estado) =>
+        Enum.TryParse<EstadoPedido>(estado, out var valor)
+            ? NombreDe(valor)
+            : string.IsNullOrWhiteSpace(estado) ? "Sin estado" : estado;
+
+    public static int NumeroDe(string? estado) =>
+        Enum.TryParse<EstadoPedido>(estado, out var valor) ? NumeroDe(valor) : 0;
+
+    public static string BadgeDe(EstadoPedido estado) => estado switch
     {
-        public static string BadgeDe(string? estado) => estado switch
-        {
-            "EsperaConfirmacion" => "bg-secondary",
-            "EnPreparacion" => "bg-warning text-dark",
-            "EnViaje" => "bg-info text-dark",
-            "Entregado" => "bg-success",
-            "Cancelado" => "bg-danger",
-            _ => "bg-secondary"
-        };
+        EstadoPedido.EsperaConfirmacion => "bg-secondary",
+        EstadoPedido.EnPreparacion => "bg-warning text-dark",
+        EstadoPedido.EnViaje => "bg-info text-dark",
+        EstadoPedido.Entregado => "bg-success",
+        EstadoPedido.Cancelado => "bg-danger",
+        _ => "bg-secondary"
+    };
 
-        public static string NombreDe(string? estado) => estado switch
-        {
-            "EsperaConfirmacion" => "Pedido recibido",
-            "EnPreparacion" => "En preparación",
-            "EnViaje" => "En camino",
-            "Entregado" => "Entregado",
-            "Cancelado" => "Cancelado",
-            _ => string.IsNullOrWhiteSpace(estado) ? "Sin estado" : estado
-        };
+    public static string NombreDe(EstadoPedido estado) => estado switch
+    {
+        EstadoPedido.EsperaConfirmacion => "Pedido recibido",
+        EstadoPedido.EnPreparacion => "En preparación",
+        EstadoPedido.EnViaje => "En camino",
+        EstadoPedido.Entregado => "Entregado",
+        EstadoPedido.Cancelado => "Cancelado",
+        _ => estado.ToString()
+    };
 
-        public static int NumeroDe(string? estado) => estado switch
-        {
-            "EsperaConfirmacion" => 1,
-            "EnPreparacion" => 2,
-            "EnViaje" => 3,
-            "Entregado" => 4,
-            "Cancelado" => 5,
-            _ => 0
-        };
+    public static int NumeroDe(EstadoPedido estado) => (int)estado;
 
-        public static readonly string[] Recorrido =
-        {
-            "EsperaConfirmacion",
-            "EnPreparacion",
-            "EnViaje",
-            "Entregado"
-        };
-    }
+    public static readonly string[] Recorrido =
+    {
+        EstadoPedido.EsperaConfirmacion.ToString(),
+        EstadoPedido.EnPreparacion.ToString(),
+        EstadoPedido.EnViaje.ToString(),
+        EstadoPedido.Entregado.ToString()
+    };
 }

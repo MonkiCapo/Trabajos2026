@@ -52,6 +52,14 @@
                         <span>
                             <span class="fw-semibold">@item.Cantidad ×</span>
                             @item.Pizza
+                            @if (!string.IsNullOrEmpty(item.Tamanio))
+                            {
+                                <span class="text-muted small">(@item.Tamanio)</span>
+                            }
+                            @if (!string.IsNullOrEmpty(item.TextoAjustes))
+                            {
+                                <span class="text-muted small">(@item.TextoAjustes)</span>
+                            }
                             <span class="text-muted small">(@item.PrecioUnitario.ToString("N2") c/u)</span>
                         </span>
                         <span class="fw-semibold">$@item.Subtotal.ToString("N2")</span>

@@ -1,0 +1,39 @@
+@model PizzaAdminViewModel
+
+<input type="hidden" asp-for="Id" />
+<input type="hidden" asp-for="ImagenActual" />
+
+<div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+<div class="mb-3">
+    <label asp-for="Nombre" class="form-label fw-bold"></label>
+    <input asp-for="Nombre" class="form-control" placeholder="Ej: Pizza Fugazzeta" />
+    <span asp-validation-for="Nombre" class="text-danger small"></span>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-4">
+        <label asp-for="Tamanio" class="form-label fw-bold"></label>
+        <input asp-for="Tamanio" class="form-control" placeholder="Ej: Grande" />
+        <span asp-validation-for="Tamanio" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label asp-for="Precio" class="form-label fw-bold"></label>
+        <input asp-for="Precio" class="form-control" type="number" step="0.01" min="0.01" />
+        <span asp-validation-for="Precio" class="text-danger small"></span>
+    </div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="IngredientesSeleccionados" class="form-label fw-bold"></label>
+    <select asp-for="IngredientesSeleccionados" asp-items="Model.IngredientesDisponibles"
+            class="form-select" multiple size="8"></select>
+    <div class="form-text">Ctrl + clic para elegir varios. La lista guardada reemplaza a la anterior.</div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Imagen" class="form-label fw-bold"></label>
+    <input asp-for="Imagen" type="file" class="form-control" accept=".jpg,.jpeg,.png,.webp" />
+    <span asp-validation-for="Imagen" class="text-danger small"></span>
+    <div class="form-text">JPG, PNG o WEBP, máximo 2 MB. Si no elegís archivo, se mantiene la imagen actual.</div>
+</div>

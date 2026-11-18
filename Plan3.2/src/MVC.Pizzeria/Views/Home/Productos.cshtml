@@ -1,16 +1,22 @@
-@model List<MVC.Pizzeria.Models.PizzaViewModel>
+@model MVC.Pizzeria.Models.CatalogoViewModel
 @{
     ViewData["Title"] = "Nuestro Menú";
+    var tamanioInicial = Model.Tamanios.First();
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
     <div>
         <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Nuestros Productos 🍕</h1>
-        <p class="text-muted mb-0">Elegí tus pizzas y agregalas al carrito.</p>
+        <p class="text-muted mb-0">Elegí el tamaño, la cantidad y agregá tus pizzas al carrito.</p>
     </div>
-    <a asp-action="Resumen" asp-controller="Pedido" class="btn btn-pizza-primary">
-        Ver mi carrito 🛒
-    </a>
+    <div class="d-flex gap-2">
+        <a asp-action="Calculadora" asp-controller="Pedido" class="btn btn-outline-primary">
+            ¿Cuántas pido? 🧮
+        </a>
+        <a asp-action="Resumen" asp-controller="Pedido" class="btn btn-pizza-primary">
+            Ver mi carrito 🛒
+        </a>
+    </div>
 </div>
 
 @if (ViewData["Error"] is string errorCatalogo)
@@ -26,7 +32,7 @@
     <div class="alert alert-danger" role="alert">@errorAgregar</div>
 }
 
-@if (!Model.Any())
+@if (!Model.Pizzas.Any())
 {
     <div class="text-center my-5">
         <p class="text-muted fs-5">No hay pizzas disponibles para mostrar.</p>
@@ -34,10 +40,11 @@
 }
 
 <div class="row g-4">
-    @foreach (var pizza in Model)
+    @foreach (var pizza in Model.Pizzas)
     {
         <div class="col-md-6 col-lg-3">
-            <div class="product-card h-100 shadow-sm border rounded overflow-hidden">
+            <div class="product-card h-100 shadow-sm border rounded overflow-hidden selector-tamanio"
+                 data-precio-base="@pizza.Precio.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)">
                 <div class="product-image-container" style="height: 200px; overflow: hidden;">
                     <img src="@pizza.ImagenUrl" class="w-100 h-100 object-fit-cover" alt="@pizza.Nombre"
                          onerror="this.src='/images/pizza-generica.jpg';" />
@@ -46,7 +53,7 @@
                 <div class="p-3 d-flex flex-column">
                     <div class="product-header d-flex justify-content-between align-items-center mb-2">
                         <h5 class="product-title mb-0 fw-bold">@pizza.Nombre</h5>
-                        <span class="badge bg-secondary">@pizza.Tamanio</span>
+                        <span class="badge bg-secondary tamanio-badge">@tamanioInicial.Nombre</span>
                     </div>
 
                     <div class="product-body">
@@ -65,16 +72,32 @@
                             }
                         </div>
 
+                        @* El precio mostrado es el base × multiplicador del tamaño
+                           elegido; la API recalcula el definitivo al confirmar. *@
+                        <div class="btn-group btn-group-sm w-100 mb-3" role="group" aria-label="Tamaño de @pizza.Nombre">
+                            @foreach (var tamanio in Model.Tamanios)
+                            {
+                                <button type="button"
+                                        class="btn btn-outline-primary tamanio-boton @(tamanio.Nombre == tamanioInicial.Nombre ? "active" : "")"
+                                        data-nombre="@tamanio.Nombre"
+                                        data-mult="@tamanio.Multiplicador.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)">
+                                    @tamanio.Nombre
+                                </button>
+                            }
+                        </div>
+
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <span class="fw-bold text-success fs-5">$@pizza.Precio.ToString("N2")</span>
+                            <span class="fw-bold text-success fs-5 precio-tamanio">$@pizza.Precio.ToString("N2")</span>
                         </div>
 
                         <div class="mt-auto">
-                            @* Solo viaja el id de la pizza: el nombre y el precio
-                               los vuelve a pedir PedidoController a la API. *@
+                            @* Solo viajan el id de la pizza y el tamaño elegido:
+                               el nombre y el precio los vuelve a pedir PedidoController
+                               a la API (nunca se confía en lo que manda el navegador). *@
                             <form method="post" asp-action="Agregar" asp-controller="Pedido">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="pizzaId" value="@pizza.Id" />
+                                <input type="hidden" name="tamanio" class="tamanio-input" value="@tamanioInicial.Nombre" />
                                 <div class="d-flex gap-2">
                                     <input type="number"
                                            name="cantidad"
@@ -89,6 +112,11 @@
                                     </button>
                                 </div>
                             </form>
+                            <a asp-action="Personalizar" asp-controller="Pedido"
+                               asp-route-pizzaId="@pizza.Id" asp-route-tamanio="@tamanioInicial.Nombre"
+                               class="btn btn-outline-secondary w-100 mt-2 personalizar-link">
+                                Personalizar
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -96,3 +124,43 @@
         </div>
     }
 </div>
+
+<script>
+    (function () {
+        var formatear = function (valor) {
+            return "$" + valor.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        };
+
+        document.querySelectorAll(".selector-tamanio").forEach(function (tarjeta) {
+            var precioBase = parseFloat(tarjeta.getAttribute("data-precio-base")) || 0;
+            var badge = tarjeta.querySelector(".tamanio-badge");
+            var precioEl = tarjeta.querySelector(".precio-tamanio");
+            var input = tarjeta.querySelector(".tamanio-input");
+            var link = tarjeta.querySelector(".personalizar-link");
+
+            tarjeta.querySelectorAll(".tamanio-boton").forEach(function (boton) {
+                boton.addEventListener("click", function () {
+                    tarjeta.querySelectorAll(".tamanio-boton").forEach(function (b) {
+                        b.classList.remove("active");
+                    });
+                    boton.classList.add("active");
+
+                    var nombre = boton.getAttribute("data-nombre");
+                    var mult = parseFloat(boton.getAttribute("data-mult")) || 1;
+
+                    badge.textContent = nombre;
+                    input.value = nombre;
+                    precioEl.textContent = formatear(precioBase * mult);
+
+                    // Personalizar lleva el tamaño elegido para que la pantalla
+                    // de armado parta del mismo precio.
+                    if (link) {
+                        var url = new URL(link.href);
+                        url.searchParams.set("tamanio", nombre);
+                        link.href = url.toString();
+                    }
+                });
+            });
+        });
+    })();
+</script>

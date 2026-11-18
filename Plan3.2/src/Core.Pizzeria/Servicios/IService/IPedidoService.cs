@@ -8,9 +8,9 @@ namespace Core.Pizzeria.Servicios;
 
 public interface IPedidoService
 {
-    Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido);
+    Task<Pedido> CrearPedidoAsync(PedidoRequest request);
 
-    Task<Pedido> CrearPedidoConDatosAsync(CheckoutRequest request);
+    Task<Pedido> CrearPedidoConDatosAsync(int clienteId, CheckoutRequest request);
 
     Task ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, string observacion);
     Task<Pedido?> GetPedidoByIdAsync(int id);

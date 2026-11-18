@@ -1,0 +1,80 @@
+@model IEnumerable<PizzaViewModel>
+@{
+    ViewData["Title"] = "Panel de Administración";
+}
+
+<div class="mb-4 pb-2 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Panel de Administración 🛠️</h1>
+        <p class="text-muted mb-0">Gestioná el catálogo de pizzas. Los cambios se reflejan en Productos.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Tamanios" class="btn btn-outline-warning fw-semibold">📏 Tamaños</a>
+        <a asp-action="Crear" class="btn btn-warning fw-bold shadow-sm">＋ Nueva pizza</a>
+    </div>
+</div>
+
+@if (TempData["Ok"] is string ok)
+{
+    <div class="alert alert-success" role="alert">@ok</div>
+}
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-danger" role="alert">@error</div>
+}
+
+<div class="table-responsive shadow-sm rounded-3 border">
+    <table class="table table-hover align-middle bg-white mb-0">
+        <thead class="table-light">
+            <tr>
+                <th style="width: 90px;">Imagen</th>
+                <th>Nombre</th>
+                <th>Tamaño</th>
+                <th>Ingredientes</th>
+                <th class="text-end">Precio</th>
+                <th class="text-end">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var pizza in Model)
+            {
+                <tr>
+                    <td>
+                        <img src="@pizza.ImagenUrl" alt="@pizza.Nombre" class="rounded-2 border"
+                             style="width: 70px; height: 70px; object-fit: cover;"
+                             onerror="this.src='/images/pizza-generica.jpg';" />
+                    </td>
+                    <td class="fw-bold">@pizza.Nombre</td>
+                    <td><span class="badge bg-secondary">@pizza.Tamanio</span></td>
+                    <td>
+                        @if (pizza.Ingredientes.Any())
+                        {
+                            foreach (var ing in pizza.Ingredientes)
+                            {
+                                <span class="badge bg-light text-dark border me-1">@ing</span>
+                            }
+                        }
+                        else
+                        {
+                            <span class="text-muted small">Sin ingredientes.</span>
+                        }
+                    </td>
+                    <td class="text-end fw-bold text-success">$@pizza.Precio.ToString("N2")</td>
+                    <td class="text-end">
+                        <div class="d-inline-flex gap-2">
+                            <a asp-action="Editar" asp-route-id="@pizza.Id" class="btn btn-outline-primary btn-sm">
+                                Editar
+                            </a>
+                            <form method="post" asp-action="Eliminar"
+                                  onsubmit="return confirm('¿Seguro que querés eliminar la pizza @pizza.Nombre?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@pizza.Id" />
+                                <button type="submit" class="btn btn-outline-danger btn-sm">Eliminar</button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

@@ -1,0 +1,43 @@
+@model PizzaAdminViewModel
+@{
+    ViewData["Title"] = "Editar Pizza";
+}
+
+<div class="mb-4 pb-2 border-bottom">
+    <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Editar Pizza ✏️</h1>
+    <p class="text-muted mb-0">Actualizá los datos, los ingredientes o la imagen.</p>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                @if (!string.IsNullOrWhiteSpace(Model.ImagenActual))
+                {
+                    <div class="d-flex align-items-center gap-3 mb-4 p-3 bg-light rounded-3 border">
+                        <img src="@Model.ImagenActual" alt="Imagen actual" class="rounded-2 border"
+                             style="width: 90px; height: 90px; object-fit: cover;"
+                             onerror="this.src='/images/pizza-generica.jpg';" />
+                        <div>
+                            <span class="text-muted small d-block">Imagen actual</span>
+                            <span class="fw-semibold">Si no subís un archivo, se mantiene.</span>
+                        </div>
+                    </div>
+                }
+
+                <form method="post" asp-action="Editar" enctype="multipart/form-data">
+                    <partial name="_Formulario" model="Model" />
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top">
+                        <a asp-action="Index" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-warning fw-bold px-4">Guardar cambios</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

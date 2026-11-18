@@ -1,0 +1,152 @@
+@model MVC.Pizzeria.Models.PersonalizarViewModel
+@{
+    ViewData["Title"] = "Armá tu pizza";
+    var recargoPorExtra = Model.RecargoExtra;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+    <div>
+        <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Armá tu pizza 🛠️</h1>
+        <p class="text-muted mb-0">Destildá lo que no quieras y sumá extras a gusto.</p>
+    </div>
+    <a asp-action="Productos" asp-controller="Home" class="btn btn-outline-secondary">Volver al menú</a>
+</div>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger" asp-validation-summary="All"></div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm border rounded overflow-hidden">
+            <div style="height: 220px; overflow: hidden;">
+                <img src="@Model.ImagenUrl" class="w-100 h-100 object-fit-cover" alt="@Model.Nombre"
+                     onerror="this.src='/images/pizza-generica.jpg';" />
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h5 class="fw-bold mb-0">@Model.Nombre</h5>
+                    <span class="badge bg-secondary">@Model.Tamanio</span>
+                </div>
+                <div class="text-muted small mb-3">Precio base (@Model.Tamanio): $@Model.Precio.ToString("N2")</div>
+
+                <label for="cantidad" class="form-label fw-semibold">Cantidad</label>
+                <input type="number" id="cantidad" class="form-control mb-3"
+                       value="@Model.Cantidad" min="1" max="99" step="1" />
+
+                <div class="d-flex justify-content-between align-items-center border-top pt-3">
+                    <span class="fw-semibold">Total estimado</span>
+                    <span class="fw-bold text-success fs-5" id="total-estimado">$0.00</span>
+                </div>
+                <div class="text-muted small mt-2">La API recalcula el precio final al confirmar el pedido.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <form method="post" asp-action="Personalizar" asp-controller="Pedido">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="PizzaId" value="@Model.PizzaId" />
+            <input type="hidden" name="Tamanio" value="@Model.Tamanio" />
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-1" style="color: var(--color-principal);">Ingredientes que trae</h5>
+                    <p class="text-muted small mb-3">Destildá los que no quieras (quitar no cambia el precio).</p>
+
+                    @if (Model.IngredientesPizza.Count == 0)
+                    {
+                        <p class="text-muted mb-0">Esta pizza no tiene ingredientes cargados.</p>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var (ingrediente, indice) in Model.IngredientesPizza.Select((nombre, i) => (nombre, i)))
+                            {
+                                var incluido = Model.Incluir.Contains(ingrediente, StringComparer.OrdinalIgnoreCase);
+                                <div class="col-md-6">
+                                    <div class="form-check border rounded p-2">
+                                        <input class="form-check-input" type="checkbox" name="Incluir"
+                                               value="@ingrediente" id="incluir-@indice" @(incluido ? "checked" : "") />
+                                        <label class="form-check-label w-100" for="incluir-@indice">
+                                            @ingrediente
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="card shadow-sm border-0 mb-4">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-1" style="color: var(--color-principal);">Extras</h5>
+                    <p class="text-muted small mb-3">
+                        Cada extra suma $@recargoPorExtra.ToString("N2") al precio de la pizza (máx. @Model.MaxExtras).
+                    </p>
+
+                    @if (Model.ExtrasDisponibles.Count == 0)
+                    {
+                        <p class="text-muted mb-0">No hay ingredientes extra disponibles para esta pizza.</p>
+                    }
+                    else
+                    {
+                        <div class="row g-2">
+                            @foreach (var (extra, indice) in Model.ExtrasDisponibles.Select((nombre, i) => (nombre, i)))
+                            {
+                                var marcado = Model.Extras.Contains(extra, StringComparer.OrdinalIgnoreCase);
+                                <div class="col-md-6">
+                                    <div class="form-check border rounded p-2">
+                                        <input class="form-check-input extra-checkbox" type="checkbox" name="Extras"
+                                               value="@extra" id="extra-@indice" @(marcado ? "checked" : "") />
+                                        <label class="form-check-label w-100" for="extra-@indice">
+                                            @extra
+                                            <span class="badge bg-success ms-1">+$@recargoPorExtra.ToString("N2")</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-pizza-primary btn-lg px-4">Agregar al carrito 🛒</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var precioBase = @Model.Precio.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var recargo = @recargoPorExtra.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        var maxExtras = @Model.MaxExtras;
+        var totalEl = document.getElementById("total-estimado");
+        var cantidadEl = document.getElementById("cantidad");
+        var extras = Array.prototype.slice.call(document.querySelectorAll(".extra-checkbox"));
+
+        function formatear(valor) {
+            return "$" + valor.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function recalcular() {
+            var cantidad = Math.max(1, parseInt(cantidadEl.value, 10) || 1);
+            var marcados = extras.filter(function (c) { return c.checked; });
+
+            extras.forEach(function (c) {
+                c.disabled = !c.checked && marcados.length >= maxExtras;
+            });
+
+            var porUnidad = precioBase + marcados.length * recargo;
+            totalEl.textContent = formatear(porUnidad * cantidad);
+        }
+
+        cantidadEl.addEventListener("input", recalcular);
+        extras.forEach(function (c) { c.addEventListener("change", recalcular); });
+        recalcular();
+    })();
+</script>

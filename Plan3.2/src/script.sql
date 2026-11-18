@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS USUARIO (
     FOREIGN KEY (cliente_id) REFERENCES CLIENTE (id) ON DELETE CASCADE
 );
 
--- 3. PIZZA
+-- 3. PIZZA (precio = referencia del tamaño Grande, multiplicador 1.00)
 CREATE TABLE IF NOT EXISTS PIZZA (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -30,13 +30,20 @@ CREATE TABLE IF NOT EXISTS PIZZA (
     precio DECIMAL(10,2) NOT NULL
 );
 
--- 4. INGREDIENTE
+-- 4. TAMANIO (el precio de cada tamaño es PIZZA.precio × multiplicador)
+CREATE TABLE IF NOT EXISTS TAMANIO (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(50) NOT NULL UNIQUE,
+    multiplicador DECIMAL(4,2) NOT NULL
+);
+
+-- 5. INGREDIENTE
 CREATE TABLE IF NOT EXISTS INGREDIENTE (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nombre VARCHAR(100) NOT NULL
 );
 
--- 5. PIZZA_INGREDIENTE
+-- 6. PIZZA_INGREDIENTE
 CREATE TABLE IF NOT EXISTS PIZZA_INGREDIENTE (
     pizza_id INT NOT NULL,
     ingrediente_id INT NOT NULL,
@@ -45,14 +52,14 @@ CREATE TABLE IF NOT EXISTS PIZZA_INGREDIENTE (
     FOREIGN KEY (ingrediente_id) REFERENCES INGREDIENTE (id) ON DELETE CASCADE
 );
 
--- 6. ESTADO_PEDIDO
+-- 7. ESTADO_PEDIDO
 CREATE TABLE IF NOT EXISTS ESTADO_PEDIDO (
     id INT PRIMARY KEY,
     nombre VARCHAR(50) NOT NULL,
     orden INT
 );
 
--- 7. PEDIDO
+-- 8. PEDIDO
 CREATE TABLE IF NOT EXISTS PEDIDO (
     id INT AUTO_INCREMENT PRIMARY KEY,
     cliente_id INT NOT NULL,
@@ -64,18 +71,30 @@ CREATE TABLE IF NOT EXISTS PEDIDO (
     FOREIGN KEY (estado_id) REFERENCES ESTADO_PEDIDO (id)
 );
 
--- 8. ITEM_PEDIDO
+-- 9. ITEM_PEDIDO (tamanio guarda el nombre elegido: los pedidos historicos
+--    no cambian de precio aunque despues se modifique el multiplicador)
 CREATE TABLE IF NOT EXISTS ITEM_PEDIDO (
     id INT AUTO_INCREMENT PRIMARY KEY,
     pedido_id INT NOT NULL,
     pizza_id INT NOT NULL,
     cantidad INT NOT NULL,
     precio_unitario DECIMAL(10,2) NOT NULL,
+    tamanio VARCHAR(50) NOT NULL DEFAULT 'Grande',
     FOREIGN KEY (pedido_id) REFERENCES PEDIDO (id) ON DELETE CASCADE,
     FOREIGN KEY (pizza_id) REFERENCES PIZZA (id)
 );
 
--- 9. HISTORIAL_ESTADO_PEDIDO
+-- 10. ITEM_PEDIDO_AJUSTE (Arma tu pizza: ingredientes quitados y extras)
+CREATE TABLE IF NOT EXISTS ITEM_PEDIDO_AJUSTE (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    item_pedido_id INT NOT NULL,
+    ingrediente_id INT NOT NULL,
+    tipo ENUM('quitar','extra') NOT NULL,
+    FOREIGN KEY (item_pedido_id) REFERENCES ITEM_PEDIDO (id) ON DELETE CASCADE,
+    FOREIGN KEY (ingrediente_id) REFERENCES INGREDIENTE (id)
+);
+
+-- 11. HISTORIAL_ESTADO_PEDIDO
 CREATE TABLE IF NOT EXISTS HISTORIAL_ESTADO_PEDIDO (
     id INT AUTO_INCREMENT PRIMARY KEY,
     pedido_id INT NOT NULL,
@@ -100,6 +119,11 @@ INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio) VALUES (1, 'Pizza Peppero
 INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 4400.00);
 INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio) VALUES (3, 'Pizza Muzzarella', 'Grande', 5200.00);
 INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio) VALUES (4, 'Pizza Napolitana', 'Grande', 3500.00);
+
+-- Tamanios (precio = PIZZA.precio × multiplicador)
+INSERT IGNORE INTO TAMANIO (nombre, multiplicador) VALUES ('Grande', 1.00);
+INSERT IGNORE INTO TAMANIO (nombre, multiplicador) VALUES ('Mediano', 0.75);
+INSERT IGNORE INTO TAMANIO (nombre, multiplicador) VALUES ('Chico', 0.50);
 
 -- Ingredientes
 INSERT IGNORE INTO INGREDIENTE (id, nombre) VALUES (1, 'Muzzarella');

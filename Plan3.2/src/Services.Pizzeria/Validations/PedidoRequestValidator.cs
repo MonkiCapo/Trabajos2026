@@ -26,5 +26,7 @@ public class PedidoRequestValidator : AbstractValidator<PedidoRequest>
                 .GreaterThan(0).WithMessage("La cantidad debe ser mayor a 0.")
                 .LessThanOrEqualTo(100).WithMessage("La cantidad no puede superar 100.");
         });
+
+        RuleForEach(x => x.Items).SetValidator(new ItemRequestValidator());
     }
 }

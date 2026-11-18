@@ -1,9 +1,11 @@
+using System.Security.Claims;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Logging;
 using Core.Pizzeria.DTOs;
+using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.IService;
 
 namespace Api.Pizzeria.Endpoints;
@@ -14,25 +16,20 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth");
 
-        // 1. POST /api/auth/registro (Crear cliente + usuario)
-        group.MapPost("/registro", async (RegistroRequest request, IAuthService authService, IValidator<RegistroRequest> validator, ILoggerFactory loggerFactory) =>
+        // 1. POST /api/auth/registro (Crear cliente + usuario) — cubre UC-01
+        group.MapPost("/registro", async (RegistroRequest request, IAuthService authService, ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("AuthEndpoints");
-            var validation = await validator.ValidateAsync(request);
-            if (!validation.IsValid)
-            {
-                return Results.ValidationProblem(validation.ToDictionary());
-            }
 
             try
             {
-                var usuario = await authService.RegistrarAsync(request);
-                logger.LogInformation("[API] Nuevo usuario registrado: {Email} (Rol: {Rol})", usuario.Email, usuario.Rol);
-                return Results.Created($"/api/auth/usuarios/{usuario.ClienteId}", usuario);
+                var auth = await authService.RegistrarAsync(request);
+                logger.LogInformation("[API] Nuevo usuario registrado: {Email} (Rol: {Rol})", Pii.AnonimizarEmail(auth.Usuario.Email), auth.Usuario.Rol);
+                return Results.Created($"/api/auth/usuarios/{auth.Usuario.ClienteId}", auth);
             }
             catch (ValidationException ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return ValidacionHelper.RespuestaDe(ex);
             }
             catch (Exception ex)
             {
@@ -41,35 +38,30 @@ public static class AuthEndpoints
             }
         });
 
-        // 2. POST /api/auth/login (Iniciar sesion)
-        group.MapPost("/login", async (LoginRequest request, IAuthService authService, IValidator<LoginRequest> validator, ILoggerFactory loggerFactory) =>
+        // 2. POST /api/auth/login (Iniciar sesion) — devuelve { token, usuario }
+        group.MapPost("/login", async (LoginRequest request, IAuthService authService, ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("AuthEndpoints");
-            var validation = await validator.ValidateAsync(request);
-            if (!validation.IsValid)
-            {
-                return Results.ValidationProblem(validation.ToDictionary());
-            }
 
             try
             {
-                var usuario = await authService.LoginAsync(request);
+                var auth = await authService.LoginAsync(request);
 
                 // 401 tanto si el email no existe como si la contraseña no coincide,
                 // para no revelar que emails estan registrados.
-                if (usuario == null)
+                if (auth == null)
                 {
-                    logger.LogWarning("[API] Credenciales invalidas para {Email}", request.Email);
+                    logger.LogWarning("[API] Credenciales invalidas para {Email}", Pii.AnonimizarEmail(request.Email));
                     return Results.Json(
                         new { error = "Email o contraseña incorrectos." },
                         statusCode: StatusCodes.Status401Unauthorized);
                 }
 
-                return Results.Ok(usuario);
+                return Results.Ok(auth);
             }
             catch (ValidationException ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return ValidacionHelper.RespuestaDe(ex);
             }
             catch (Exception ex)
             {
@@ -78,10 +70,18 @@ public static class AuthEndpoints
             }
         });
 
-        // 3. GET /api/auth/me/{usuarioId} (Obtener datos del usuario autenticado)
-        group.MapGet("/me/{usuarioId:int}", async (int usuarioId, IAuthService authService, ILoggerFactory loggerFactory) =>
+        // 3. GET /api/auth/me/{usuarioId} (Datos del usuario autenticado)
+        // Ownership: solo el propio usuario (o un Admin) puede ver su perfil;
+        // el 403 no revela si el id existe o no.
+        group.MapGet("/me/{usuarioId:int}", async (int usuarioId, IAuthService authService, HttpContext httpContext, ILoggerFactory loggerFactory) =>
         {
             var logger = loggerFactory.CreateLogger("AuthEndpoints");
+
+            if (!EsElPropioUsuario(httpContext, usuarioId) && !httpContext.User.IsInRole("Admin"))
+            {
+                return Results.Forbid();
+            }
+
             try
             {
                 var usuario = await authService.ObtenerPerfilAsync(usuarioId);
@@ -97,8 +97,14 @@ public static class AuthEndpoints
                 logger.LogError(ex, "[API] Error al obtener el perfil del usuario {UsuarioId}.", usuarioId);
                 return Results.StatusCode(StatusCodes.Status500InternalServerError);
             }
-        });
+        }).RequireAuthorization();
 
         return app;
+    }
+
+    private static bool EsElPropioUsuario(HttpContext httpContext, int usuarioId)
+    {
+        var claim = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return int.TryParse(claim, out var usuarioIdDelToken) && usuarioIdDelToken == usuarioId;
     }
 }

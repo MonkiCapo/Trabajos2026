@@ -22,8 +22,10 @@ public static class DatabaseExtensions
 
         // Registro repositorios del Dapper.Pizzeria
         services.AddScoped<IClienteRepositorio, ClienteRepositorio>();
+        services.AddScoped<IIngredienteRepositorio, IngredienteRepositorio>();
         services.AddScoped<IPedidoRepositorio, PedidoRepositorio>();
         services.AddScoped<IPizzaRepositorio, PizzaRepositorio>();
+        services.AddScoped<ITamanioRepositorio, TamanioRepositorio>();
         services.AddScoped<IUsuarioRepositorio, UsuarioRepositorio>();
 
         // Se crea la bd buscando el archivo script.sql

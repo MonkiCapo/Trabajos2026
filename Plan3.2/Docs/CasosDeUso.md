@@ -8,7 +8,7 @@
 ### Actor: Cliente
 | Código | Nombre | Descripción |
 |--------|--------|-------------|
-| **UC-01** | Registrar Cliente | El cliente introduce sus datos básicos para obtener su identificador del sistema. |
+| **UC-01** | Registrar Cliente | El cliente introduce sus datos básicos y crea su cuenta; el sistema registra usuario y cliente juntos (`POST /api/auth/registro`). |
 | **UC-02** | Consultar Pedido | El cliente monitorea el estado de su orden activa. |
 | **UC-03** | Realizar Pedido | El cliente confirma su lista de compras, gatillando el flujo de negocio de la API. |
 

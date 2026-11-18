@@ -1,19 +1,18 @@
 using MVC.Pizzeria.Models;
 
-namespace MVC.Pizzeria.Servicios
+namespace MVC.Pizzeria.Servicios;
+
+public interface ICarritoStore
 {
-    public interface ICarritoStore
-    {
-        CarritoViewModel Obtener();
+    CarritoViewModel Obtener();
 
-        void Guardar(CarritoViewModel carrito);
+    void Guardar(CarritoViewModel carrito);
 
-        void Agregar(ItemCarritoViewModel item, int cantidad);
+    void Agregar(ItemCarritoViewModel item, int cantidad);
 
-        void Actualizar(int pizzaId, int cantidad);
+    void Actualizar(string lineaId, int cantidad);
 
-        void Quitar(int pizzaId);
+    void Quitar(string lineaId);
 
-        void Vaciar();
-    }
+    void Vaciar();
 }

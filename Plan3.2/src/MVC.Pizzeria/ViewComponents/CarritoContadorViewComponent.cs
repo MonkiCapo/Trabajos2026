@@ -2,27 +2,25 @@ using Microsoft.AspNetCore.Mvc;
 using MVC.Pizzeria.Models;
 using MVC.Pizzeria.Servicios;
 
-namespace MVC.Pizzeria.ViewComponents
+namespace MVC.Pizzeria.ViewComponents;
+
+public class CarritoContadorViewComponent : ViewComponent
 {
+    private readonly ICarritoStore _carrito;
 
-    public class CarritoContadorViewComponent : ViewComponent
+    public CarritoContadorViewComponent(ICarritoStore carrito)
     {
-        private readonly ICarritoStore _carrito;
+        _carrito = carrito;
+    }
 
-        public CarritoContadorViewComponent(ICarritoStore carrito)
+    public IViewComponentResult Invoke()
+    {
+        var carrito = _carrito.Obtener();
+
+        return View(new CarritoContadorModel
         {
-            _carrito = carrito;
-        }
-
-        public IViewComponentResult Invoke()
-        {
-            var carrito = _carrito.Obtener();
-
-            return View(new CarritoContadorModel
-            {
-                CantidadTotal = carrito.CantidadTotal,
-                HayItems = carrito.HayItems
-            });
-        }
+            CantidadTotal = carrito.CantidadTotal,
+            HayItems = carrito.HayItems
+        });
     }
 }

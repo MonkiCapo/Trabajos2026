@@ -11,11 +11,6 @@ public class CheckoutRequestValidator : AbstractValidator<CheckoutRequest>
             .NotEmpty().WithMessage("El nombre es obligatorio.")
             .MaximumLength(100).WithMessage("El nombre no puede superar 100 caracteres.");
 
-        RuleFor(x => x.Email)
-            .NotEmpty().WithMessage("El email es obligatorio.")
-            .MaximumLength(150).WithMessage("El email no puede superar 150 caracteres.")
-            .EmailAddress().WithMessage("El formato del email no es valido.");
-
         RuleFor(x => x.Telefono)
             .NotEmpty().WithMessage("El telefono es obligatorio.")
             .MaximumLength(20).WithMessage("El telefono no puede superar 20 caracteres.")
@@ -37,5 +32,7 @@ public class CheckoutRequestValidator : AbstractValidator<CheckoutRequest>
                 .GreaterThan(0).WithMessage("La cantidad debe ser mayor a 0.")
                 .LessThanOrEqualTo(99).WithMessage("La cantidad maxima por pizza es 99.");
         });
+
+        RuleForEach(x => x.Items).SetValidator(new ItemRequestValidator());
     }
 }

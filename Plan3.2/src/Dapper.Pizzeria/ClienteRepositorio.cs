@@ -32,49 +32,41 @@ public class ClienteRepositorio : DapperRepo, IClienteRepositorio
         return await propia.ExecuteScalarAsync<int>(sql, parametros, transaction);
     }
 
-    public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id)
+    public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
         var sql = @"UPDATE CLIENTE SET Nombre = @Nombre,Email = @Email,Telefono = @Telefono,Direccion = @Direccion WHERE id = @Id;";
 
-        using var conexion = NuevaConexion();
-
-        var rowsAffected = await conexion.ExecuteAsync(sql, new
+        var parametros = new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion,
             Id = id
-        });
-        return rowsAffected > 0;
+        };
+
+        if (conexion is not null)
+        {
+            var rowsAffected = await conexion.ExecuteAsync(sql, parametros, transaction);
+            return rowsAffected > 0;
+        }
+
+        using var propia = NuevaConexion();
+        var rowsPropios = await propia.ExecuteAsync(sql, parametros, transaction);
+        return rowsPropios > 0;
     }
 
-    public async Task<bool> EliminarClienteAsync(int id)
-    {
-        var sql = "DELETE FROM CLIENTE WHERE id = @Id;";
-
-        using var conexion = NuevaConexion();
-
-        var rowsAffected = await conexion.ExecuteAsync(sql, new { Id = id });
-        return rowsAffected > 0;
-    }
-
-    public async Task<IEnumerable<Cliente>> ObtenerClientesAsync()
-    {
-        var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE;";
-
-        using var conexion = NuevaConexion();
-
-        return await conexion.QueryAsync<Cliente>(sql);
-    }
-
-    public async Task<Cliente?> ObtenerClientePorIdAsync(int id)
+    public async Task<Cliente?> ObtenerClientePorIdAsync(int id, IDbConnection? conexion = null, IDbTransaction? transaction = null)
     {
         var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id;";
 
-        using var conexion = NuevaConexion();
+        if (conexion is not null)
+        {
+            return await conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id }, transaction);
+        }
 
-        return await conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
+        using var propia = NuevaConexion();
+        return await propia.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id }, transaction);
     }
 
     public async Task<Cliente?> ObtenerClientePorEmailAsync(string email, IDbConnection? conexion = null, IDbTransaction? transaction = null)

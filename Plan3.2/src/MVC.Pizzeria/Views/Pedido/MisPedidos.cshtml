@@ -6,7 +6,7 @@
 
 <div class="my-4">
     <h1 class="fw-bold mb-0" style="color: var(--color-principal);">Mis pedidos</h1>
-    <p class="text-muted mb-0">Los pedidos que confirmaste desde este navegador.</p>
+    <p class="text-muted mb-0">Los pedidos que confirmaste desde tu cuenta.</p>
 </div>
 
 @if (TempData["Ok"] is string ok)
@@ -51,9 +51,18 @@ else
 
                     <div class="text-end">
                         <div class="fs-5 fw-bold text-success mb-2">$@pedido.Total.ToString("N2")</div>
-                        <a asp-action="Seguimiento" asp-route-id="@pedido.PedidoId" class="btn btn-sm btn-outline-primary">
-                            Ver seguimiento
-                        </a>
+                        <div class="d-flex gap-2 justify-content-end flex-wrap">
+                            <form asp-action="Repetir" method="post">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@pedido.PedidoId" />
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    Repetir pedido
+                                </button>
+                            </form>
+                            <a asp-action="Seguimiento" asp-route-id="@pedido.PedidoId" class="btn btn-sm btn-outline-primary">
+                                Ver seguimiento
+                            </a>
+                        </div>
                     </div>
                 </div>
 

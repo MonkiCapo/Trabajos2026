@@ -1,15 +1,14 @@
 using MVC.Pizzeria.Models;
 
-namespace MVC.Pizzeria.Servicios
+namespace MVC.Pizzeria.Servicios;
+
+public interface IMisPedidosStore
 {
-    public interface IMisPedidosStore
-    {
-        IReadOnlyList<PedidoRegistrado> Obtener();
+    IReadOnlyList<PedidoRegistrado> Obtener();
 
-        void Registrar(int pedidoId);
+    void Registrar(int pedidoId);
 
-        void Quitar(int pedidoId);
+    void Quitar(int pedidoId);
 
-        void Vaciar();
-    }
+    void Vaciar();
 }

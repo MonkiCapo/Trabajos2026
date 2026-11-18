@@ -1,4 +1,6 @@
+using System.Collections.Generic;
 using System.Data;
+using System.Linq;
 using Dapper;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios.IRepositorios;
@@ -8,6 +10,15 @@ namespace Dapper.Pizzeria;
 
 public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
 {
+    // Proyeccion auxiliar: cada fila es un ajuste de un item del pedido.
+    // No es una entidad de negocio, asi que queda privada al repositorio.
+    private class AjusteItem
+    {
+        public int ItemPedidoId { get; set; }
+        public string Tipo { get; set; } = string.Empty;
+        public string Nombre { get; set; } = string.Empty;
+    }
+
     public PedidoRepositorio(IAdo ado) : base(ado) { }
 
     public async Task<int> CrearPedidoAsync(Pedido pedido, IDbConnection conexion, IDbTransaction transaction)
@@ -28,21 +39,76 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
 
     public async Task CrearItemsPedidoAsync(List<ItemPedido> items, int pedidoId, IDbConnection conexion, IDbTransaction transaction)
     {
-        const string insertItemSql = @"
-            INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, cantidad, precio_unitario)
-            VALUES (@PedidoId, @PizzaId, @Cantidad, @PrecioUnitario);";
-
-        foreach (var item in items)
+        if (items.Count == 0)
         {
-            item.PedidoId = pedidoId;
-            await conexion.ExecuteAsync(insertItemSql, new
-            {
-                item.PedidoId,
-                item.PizzaId,
-                item.Cantidad,
-                item.PrecioUnitario
-            }, transaction);
+            return;
         }
+
+        // INSERT multi-fila: un pedido con N items hace un solo round-trip a la
+        // base en lugar de N. Los parametros se numeran para no repetir nombres.
+        var filas = new List<string>(items.Count);
+        var parametros = new DynamicParameters();
+
+        for (var indice = 0; indice < items.Count; indice++)
+        {
+            var item = items[indice];
+            item.PedidoId = pedidoId;
+
+            filas.Add($"(@PedidoId{indice}, @PizzaId{indice}, @Cantidad{indice}, @PrecioUnitario{indice}, @Tamanio{indice})");
+            parametros.Add($"PedidoId{indice}", pedidoId);
+            parametros.Add($"PizzaId{indice}", item.PizzaId);
+            parametros.Add($"Cantidad{indice}", item.Cantidad);
+            parametros.Add($"PrecioUnitario{indice}", item.PrecioUnitario);
+            parametros.Add($"Tamanio{indice}", item.Tamanio);
+        }
+
+        var sql = $@"
+            INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, cantidad, precio_unitario, tamanio)
+            VALUES {string.Join(", ", filas)};";
+
+        await conexion.ExecuteAsync(sql, parametros, transaction);
+
+        // Los AUTO_INCREMENT se asignan en el orden de las filas del INSERT,
+        // asi que al releerlos por pedido (recien creado, sin items previos)
+        // el orden coincide con el de la lista. Cada item necesita su id para
+        // colgar los ajustes.
+        var ids = await conexion.QueryAsync<int>(
+            "SELECT id FROM ITEM_PEDIDO WHERE pedido_id = @PedidoId ORDER BY id;",
+            new { PedidoId = pedidoId }, transaction);
+
+        var posicion = 0;
+        foreach (var id in ids)
+        {
+            items[posicion].Id = id;
+            posicion++;
+        }
+    }
+
+    public async Task CrearAjustesAsync(int itemPedidoId, IEnumerable<int> ingredienteIds, string tipo, IDbConnection conexion, IDbTransaction transaction)
+    {
+        var ids = ingredienteIds.ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        // INSERT multi-fila: los ajustes de un item se insertan de una sola vez.
+        var filas = new List<string>(ids.Count);
+        var parametros = new DynamicParameters();
+        parametros.Add("ItemPedidoId", itemPedidoId);
+        parametros.Add("Tipo", tipo);
+
+        for (var indice = 0; indice < ids.Count; indice++)
+        {
+            filas.Add($"(@ItemPedidoId, @IngredienteId{indice}, @Tipo)");
+            parametros.Add($"IngredienteId{indice}", ids[indice]);
+        }
+
+        var sql = $@"
+            INSERT INTO ITEM_PEDIDO_AJUSTE (item_pedido_id, ingrediente_id, tipo)
+            VALUES {string.Join(", ", filas)};";
+
+        await conexion.ExecuteAsync(sql, parametros, transaction);
     }
 
     public async Task CrearHistorialAsync(int pedidoId, EstadoPedido estado, string observacion, IDbConnection conexion, IDbTransaction transaction)
@@ -60,15 +126,18 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
         }, transaction);
     }
 
-    public async Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, IDbConnection conexion, IDbTransaction transaction)
+    public async Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido estadoActual, EstadoPedido nuevoEstado, IDbConnection conexion, IDbTransaction transaction)
     {
+        // UPDATE condicional: si otro proceso ya cambio el estado, no se afecta
+        // ninguna fila y el servicio lo toma como conflicto de concurrencia.
         var sql = @"
             UPDATE PEDIDO 
-            SET estado_id = @EstadoId, fecha_actualizacion = @FechaActualizacion 
-            WHERE id = @Id";
+            SET estado_id = @NuevoEstadoId, fecha_actualizacion = @FechaActualizacion 
+            WHERE id = @Id AND estado_id = @EstadoActualId";
         var rowsAffected = await conexion.ExecuteAsync(sql, new
         {
-            EstadoId = (int)nuevoEstado,
+            NuevoEstadoId = (int)nuevoEstado,
+            EstadoActualId = (int)estadoActual,
             FechaActualizacion = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
             Id = pedidoId
         }, transaction);
@@ -76,6 +145,12 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
     }
 
     public async Task<Pedido?> ObtenerPedidoPorIdAsync(int id)
+    {
+        using var conexion = NuevaConexion();
+        return await ObtenerPedidoPorIdAsync(id, conexion, null);
+    }
+
+    public async Task<Pedido?> ObtenerPedidoPorIdAsync(int id, IDbConnection conexion, IDbTransaction? transaction)
     {
         const string sqlPedido = @"
             SELECT id, cliente_id AS ClienteId, estado_id AS Estado, fecha_creacion AS FechaCreacion, 
@@ -85,20 +160,48 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
 
         const string sqlItems = @"
             SELECT ip.id, ip.pedido_id AS PedidoId, ip.pizza_id AS PizzaId, ip.cantidad, 
-                   ip.precio_unitario AS PrecioUnitario, pz.nombre AS PizzaNombre
+                   ip.precio_unitario AS PrecioUnitario, ip.tamanio AS Tamanio, pz.nombre AS PizzaNombre
             FROM ITEM_PEDIDO ip
             JOIN PIZZA pz ON ip.pizza_id = pz.id
             WHERE ip.pedido_id = @PedidoId";
 
-        using var conexion = NuevaConexion();
-
-        var pedido = await conexion.QueryFirstOrDefaultAsync<Pedido>(sqlPedido, new { Id = id });
+        var pedido = await conexion.QueryFirstOrDefaultAsync<Pedido>(sqlPedido, new { Id = id }, transaction);
         if (pedido == null) return null;
 
         // Las dos consultas van sobre la misma conexion: el pedido y sus items
         // se leen de forma consistente, sin abrir dos conexiones al pool.
-        var items = await conexion.QueryAsync<ItemPedido>(sqlItems, new { PedidoId = id });
+        var items = await conexion.QueryAsync<ItemPedido>(sqlItems, new { PedidoId = id }, transaction);
         pedido.Items = items.ToList();
+
+        // Ajustes de "Arma tu pizza": una unica consulta para todos los items
+        // del pedido (sin N+1), agrupada en memoria por item y tipo.
+        if (pedido.Items.Count > 0)
+        {
+            const string sqlAjustes = @"
+                SELECT a.item_pedido_id AS ItemPedidoId, a.tipo AS Tipo, i.nombre AS Nombre
+                FROM ITEM_PEDIDO_AJUSTE a
+                JOIN INGREDIENTE i ON i.id = a.ingrediente_id
+                WHERE a.item_pedido_id IN @Ids
+                ORDER BY a.id";
+
+            var idsDeItems = pedido.Items.Select(item => item.Id).ToList();
+            var ajustes = await conexion.QueryAsync<AjusteItem>(sqlAjustes, new { Ids = idsDeItems }, transaction);
+
+            foreach (var ajuste in ajustes)
+            {
+                var item = pedido.Items.FirstOrDefault(i => i.Id == ajuste.ItemPedidoId);
+                if (item is null) continue;
+
+                if (string.Equals(ajuste.Tipo, "quitar", StringComparison.OrdinalIgnoreCase))
+                {
+                    item.Quitar.Add(ajuste.Nombre);
+                }
+                else
+                {
+                    item.Extras.Add(ajuste.Nombre);
+                }
+            }
+        }
 
         return pedido;
     }
@@ -118,17 +221,5 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
         using var conexion = NuevaConexion();
 
         return await conexion.QueryAsync<HistorialEstadoPedido>(sql, new { PedidoId = pedidoId });
-    }
-
-    public async Task<IEnumerable<Pedido>> ObtenerPedidosAsync()
-    {
-        var sql = @"
-            SELECT id, cliente_id AS ClienteId, estado_id AS Estado, fecha_creacion AS FechaCreacion, 
-                   fecha_actualizacion AS FechaActualizacion, total
-            FROM PEDIDO;";
-
-        using var conexion = NuevaConexion();
-
-        return await conexion.QueryAsync<Pedido>(sql);
     }
 }
