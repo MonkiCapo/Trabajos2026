@@ -18,4 +18,5 @@ public interface IPizzaRepositorio
     Task<bool> EliminarPizzaAsync(int id, CancellationToken ct = default);
     Task<bool> TieneItemsAsociadosAsync(int pizzaId, CancellationToken ct = default);
     Task<bool> DescontarStockAsync(int pizzaId, int cantidad, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
+    Task<bool> RestaurarStockAsync(int pizzaId, int cantidad, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
 }

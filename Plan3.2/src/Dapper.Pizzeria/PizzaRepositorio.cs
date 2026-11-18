@@ -102,4 +102,11 @@ public class PizzaRepositorio : DapperRepo, IPizzaRepositorio
         var rows = await conexion.ExecuteAsync(new CommandDefinition(sql, new { Id = pizzaId, Cantidad = cantidad }, transaction, cancellationToken: ct));
         return rows > 0;
     }
+
+    public async Task<bool> RestaurarStockAsync(int pizzaId, int cantidad, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default)
+    {
+        const string sql = "UPDATE PIZZA SET stock = stock + @Cantidad WHERE id = @Id;";
+        var rows = await conexion.ExecuteAsync(new CommandDefinition(sql, new { Id = pizzaId, Cantidad = cantidad }, transaction, cancellationToken: ct));
+        return rows > 0;
+    }
 }

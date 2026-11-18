@@ -93,6 +93,27 @@ static PizzaResponse ToPizzaResponse(Pizza p) => new()
     Disponible = p.Disponible
 };
 
+static PedidoDetalleResponse ToPedidoDetalleResponse(Pedido p, Cliente? cliente) => new()
+{
+    PedidoId = p.Id,
+    Estado = p.Estado,
+    Cliente = cliente is null ? null : new ClienteResumenResponse
+    {
+        Id = cliente.Id,
+        Nombre = cliente.Nombre,
+        Email = cliente.Email
+    },
+    Items = p.Items.Select(i => new ItemPedidoResponse
+    {
+        Pizza = i.PizzaNombre,
+        Cantidad = i.Cantidad,
+        PrecioUnitario = i.PrecioUnitario
+    }).ToList(),
+    Total = p.Total,
+    FechaCreacion = p.FechaCreacion,
+    FechaActualizacion = p.FechaActualizacion
+};
+
 // Endpoints
 
 // 1. POST /api/clientes (Registrar cliente)
@@ -267,29 +288,22 @@ app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, ICl
         return Results.NotFound();
     }
 
-    // Obtener información del cliente
     var cliente = await clienteRepo.ObtenerClientePorIdAsync(order.ClienteId, ct);
+    return Results.Ok(ToPedidoDetalleResponse(order, cliente));
+});
 
-    return Results.Ok(new PedidoDetalleResponse
+// 4b. PUT /api/pedidos/{id} (Modificar pedido - Cliente, solo en EsperaConfirmacion)
+app.MapPut("/api/pedidos/{id}", async (int id, ModificarPedidoRequest request, IPedidoService pedidoService, IClienteRepositorio clienteRepo, IValidator<ModificarPedidoRequest> validator, CancellationToken ct) =>
+{
+    var validation = await validator.ValidateAsync(request, ct);
+    if (!validation.IsValid)
     {
-        PedidoId = order.Id,
-        Estado = order.Estado,
-        Cliente = cliente is null ? null : new ClienteResumenResponse
-        {
-            Id = cliente.Id,
-            Nombre = cliente.Nombre,
-            Email = cliente.Email
-        },
-        Items = order.Items.Select(i => new ItemPedidoResponse
-        {
-            Pizza = i.PizzaNombre,
-            Cantidad = i.Cantidad,
-            PrecioUnitario = i.PrecioUnitario
-        }).ToList(),
-        Total = order.Total,
-        FechaCreacion = order.FechaCreacion,
-        FechaActualizacion = order.FechaActualizacion
-    });
+        return Results.ValidationProblem(validation.ToDictionary());
+    }
+
+    var pedido = await pedidoService.ModificarPedidoAsync(id, request.Items, ct);
+    var cliente = await clienteRepo.ObtenerClientePorIdAsync(pedido.ClienteId, ct);
+    return Results.Ok(ToPedidoDetalleResponse(pedido, cliente));
 });
 
 // 5. GET /api/pedidos (Listar pedidos, filtro opcional ?estado=)

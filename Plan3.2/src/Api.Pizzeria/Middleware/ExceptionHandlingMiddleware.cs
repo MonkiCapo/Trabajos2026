@@ -46,6 +46,15 @@ public class ExceptionHandlingMiddleware
                 estadoSolicitado = ex.EstadoSolicitado
             });
         }
+        catch (PedidoNoModificableException ex)
+        {
+            _logger.LogWarning("[API] Modificacion rechazada en {Path}: {Mensaje}", context.Request.Path, ex.Message);
+            await EscribirJsonAsync(context, StatusCodes.Status409Conflict, new
+            {
+                error = ex.Message,
+                estadoActual = ex.EstadoActual
+            });
+        }
         catch (MySqlException ex) when (ex.Number == 1062)
         {
             _logger.LogWarning("[API] Registro duplicado en {Path}.", context.Request.Path);

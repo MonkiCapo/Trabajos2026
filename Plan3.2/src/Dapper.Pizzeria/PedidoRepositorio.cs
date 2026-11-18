@@ -55,6 +55,28 @@ public class PedidoRepositorio : DapperRepo, IPedidoRepositorio
         await conexion.ExecuteAsync(new CommandDefinition(sql, parametros, transaction, cancellationToken: ct));
     }
 
+    public async Task<bool> EliminarItemsPedidoAsync(int pedidoId, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default)
+    {
+        const string sql = "DELETE FROM ITEM_PEDIDO WHERE pedido_id = @PedidoId;";
+        var rows = await conexion.ExecuteAsync(new CommandDefinition(sql, new { PedidoId = pedidoId }, transaction, cancellationToken: ct));
+        return rows > 0;
+    }
+
+    public async Task<bool> ActualizarTotalAsync(int pedidoId, decimal total, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default)
+    {
+        const string sql = @"UPDATE PEDIDO
+                             SET total = @Total, fecha_actualizacion = @FechaActualizacion
+                             WHERE id = @Id;";
+
+        var rows = await conexion.ExecuteAsync(new CommandDefinition(sql, new
+        {
+            Total = total,
+            FechaActualizacion = DateTime.UtcNow,
+            Id = pedidoId
+        }, transaction, cancellationToken: ct));
+        return rows > 0;
+    }
+
     public async Task CrearHistorialAsync(int pedidoId, EstadoPedido estado, string observacion, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default)
     {
         const string sql = @"INSERT INTO HISTORIAL_ESTADO_PEDIDO (pedido_id, estado_id, fecha_cambio, observacion)

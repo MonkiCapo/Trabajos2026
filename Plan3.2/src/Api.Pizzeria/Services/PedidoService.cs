@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
@@ -119,6 +120,91 @@ public class PedidoService : IPedidoService
         }
 
         return nuevoPedido;
+    }
+
+    public async Task<Pedido> ModificarPedidoAsync(int pedidoId, List<ItemRequest> nuevosItems, CancellationToken ct = default)
+    {
+        var pedido = await _pedidoRepo.ObtenerPedidoPorIdAsync(pedidoId, ct)
+            ?? throw new PedidoNoEncontradoException(pedidoId);
+
+        if (pedido.Estado != EstadoPedido.EsperaConfirmacion)
+        {
+            throw new PedidoNoModificableException(pedidoId, pedido.Estado);
+        }
+
+        using var conexion = _ado.GetDbConnection();
+        await conexion.OpenAsync(ct);
+        using var transaction = await conexion.BeginTransactionAsync(ct);
+
+        try
+        {
+            // 1. Devolver al catálogo el stock de los ítems actuales (luego se descuentan los nuevos).
+            foreach (var itemViejo in pedido.Items)
+            {
+                await _pizzaRepo.RestaurarStockAsync(itemViejo.PizzaId, itemViejo.Cantidad, conexion, transaction, ct);
+            }
+
+            // 2. Resolver y validar las pizzas nuevas en una sola consulta (evita N+1).
+            var nombres = nuevosItems.Select(i => i.PizzaNombre).Distinct().ToList();
+            var pizzas = (await _pizzaRepo.ObtenerPizzasPorNombresAsync(nombres, ct))
+                .ToDictionary(p => p.Nombre, StringComparer.OrdinalIgnoreCase);
+
+            decimal total = 0;
+            var itemsFinales = new List<ItemPedido>(nuevosItems.Count);
+
+            foreach (var item in nuevosItems)
+            {
+                if (!pizzas.TryGetValue(item.PizzaNombre, out var pizzaInfo))
+                {
+                    throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no existe en el catalogo.");
+                }
+
+                if (!pizzaInfo.Disponible)
+                {
+                    throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no está disponible actualmente.");
+                }
+
+                var descontado = await _pizzaRepo.DescontarStockAsync(pizzaInfo.Id, item.Cantidad, conexion, transaction, ct);
+                if (!descontado)
+                {
+                    throw new ArgumentException($"Stock insuficiente para la pizza \"{item.PizzaNombre}\". Disponible: {pizzaInfo.Stock}, solicitado: {item.Cantidad}.");
+                }
+
+                itemsFinales.Add(new ItemPedido
+                {
+                    PizzaId = pizzaInfo.Id,
+                    PizzaNombre = pizzaInfo.Nombre,
+                    Cantidad = item.Cantidad,
+                    PrecioUnitario = pizzaInfo.Precio
+                });
+                total += pizzaInfo.Precio * item.Cantidad;
+            }
+
+            // 3. Reemplazar ítems y actualizar total/fecha dentro de la misma transacción.
+            await _pedidoRepo.EliminarItemsPedidoAsync(pedidoId, conexion, transaction, ct);
+            await _pedidoRepo.CrearItemsPedidoAsync(itemsFinales, pedidoId, conexion, transaction, ct);
+            await _pedidoRepo.ActualizarTotalAsync(pedidoId, total, conexion, transaction, ct);
+
+            await transaction.CommitAsync(ct);
+
+            pedido.Items = itemsFinales;
+            pedido.Total = total;
+            pedido.FechaActualizacion = DateTime.UtcNow;
+            _logger.LogInformation("[PEDIDOSERVICE] Pedido {Id} modificado: {Cantidad} items, total {Total}.", pedidoId, itemsFinales.Count, total);
+        }
+        catch (ArgumentException)
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(ct);
+            _logger.LogError(ex, "[PEDIDOSERVICE] Error al modificar el pedido {Id}; transaccion revertida.", pedidoId);
+            throw;
+        }
+
+        return pedido;
     }
 
     public async Task CambiarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, CancellationToken ct = default)

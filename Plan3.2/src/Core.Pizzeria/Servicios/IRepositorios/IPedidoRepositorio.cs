@@ -11,6 +11,8 @@ public interface IPedidoRepositorio
 {
     Task<int> CrearPedidoAsync(Pedido pedido, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
     Task CrearItemsPedidoAsync(List<ItemPedido> items, int pedidoId, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
+    Task<bool> EliminarItemsPedidoAsync(int pedidoId, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
+    Task<bool> ActualizarTotalAsync(int pedidoId, decimal total, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
     Task CrearHistorialAsync(int pedidoId, EstadoPedido estado, string observacion, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
     Task<bool> ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, DbConnection conexion, DbTransaction transaction, CancellationToken ct = default);
     Task<Pedido?> ObtenerPedidoPorIdAsync(int id, CancellationToken ct = default);
