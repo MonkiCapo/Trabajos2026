@@ -148,7 +148,7 @@ erDiagram
 
     USUARIO {
         int id PK
-        int cliente_id FK UK
+        int cliente_id FK, UK
         string email UK
         string password_hash
         string rol
