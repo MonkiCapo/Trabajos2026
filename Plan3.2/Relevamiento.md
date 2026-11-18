@@ -206,7 +206,7 @@ sequenceDiagram
     autonumber
     actor Cliente as Cliente
     participant Sistema as Sistema Pizzería (API)
-    database BD as Base de Datos / Stock
+    participant BD as Base de Datos / Stock
 
     %% 1. Ver pizzas
     Cliente->>Sistema: 1. Consultar catálogo de pizzas ("Ver pizzas")
@@ -224,8 +224,8 @@ sequenceDiagram
     Sistema-->>Cliente: Carrito actualizado con los ítems solicitados
     deactivate Sistema
 
-    %% Alternativa: Modificar pedido (<<Extend>>)
-    opt <<Extend>> Modificar Pedido
+    %% Alternativa: Modificar pedido («Extend»)
+    opt «Extend» Modificar Pedido
         Cliente->>Sistema: Agregar/quitar unidades o cambiar pizzas
         activate Sistema
         Sistema->>Sistema: Recalcular subtotales del carrito
@@ -237,9 +237,9 @@ sequenceDiagram
     Cliente->>Sistema: 3. Confirmar pedido (Enviar orden)
     activate Sistema
 
-    %% 4. Inclusión: Verificar Stock (<<Include>>)
+    %% 4. Inclusión: Verificar Stock («Include»)
     rect rgb(240, 245, 255)
-        Note over Sistema, BD: <<Include>> Verificar Stock
+        Note over Sistema, BD: «Include» Verificar Stock
         Sistema->>BD: Comprobar disponibilidad de pizzas e ingredientes
         activate BD
         BD-->>Sistema: Resultado de disponibilidad de stock
@@ -248,7 +248,7 @@ sequenceDiagram
 
     %% 5 & 6. Evaluación de Stock y Resultado
     alt Stock disponible (Flujo Principal)
-        Sistema->>BD: Registrar Pedido (Estado: EsperaConfirmacion)
+        Sistema->>BD: Registrar Pedido (Estado - EsperaConfirmacion)
         activate BD
         Sistema->>BD: Descontar stock de pizzas (UPDATE atómico)
         BD-->>Sistema: Pedido registrado con éxito (Id generado)
@@ -278,7 +278,7 @@ sequenceDiagram
     autonumber
     actor Admin as Administrador
     participant Sistema as Sistema Pizzería (API)
-    database BD as Base de Datos
+    participant BD as Base de Datos
 
     Admin->>Sistema: 1. Ingresar a sección de gestión del menú
     activate Sistema
@@ -289,7 +289,7 @@ sequenceDiagram
     Sistema-->>Admin: Mostrar listado de pizzas
     deactivate Sistema
 
-    alt Acción A: Agregar nueva pizza
+    alt Acción A - Agregar nueva pizza
         Admin->>Sistema: 2a. Enviar datos de nueva pizza (Nombre, ingredientes, tamaño, precio)
         activate Sistema
         Sistema->>Sistema: Validar datos obligatorios completos
@@ -300,13 +300,13 @@ sequenceDiagram
             Sistema->>BD: Insertar nueva pizza en catálogo
             BD-->>Sistema: Registro exitoso
             deactivate BD
-            Sistema-->>Admin: Confirmación: Pizza agregada exitosamente al catálogo
+            Sistema-->>Admin: Confirmación - Pizza agregada exitosamente al catálogo
         else Error de validación o duplicado (Excepción)
-            Sistema-->>Admin: Error: Campos incompletos o nombre de pizza ya existente
+            Sistema-->>Admin: Error - Campos incompletos o nombre de pizza ya existente
         end
         deactivate Sistema
 
-    else Acción B: Quitar pizza existente
+    else Acción B - Quitar pizza existente
         Admin->>Sistema: 2b. Solicitar eliminación de una pizza del menú
         activate Sistema
         Sistema->>BD: Verificar si la pizza integra pedidos activos ("EnPreparacion")
@@ -318,20 +318,20 @@ sequenceDiagram
             activate BD
             BD-->>Sistema: Eliminación exitosa
             deactivate BD
-            Sistema-->>Admin: Confirmación: Pizza retirada del menú comercial
+            Sistema-->>Admin: Confirmación - Pizza retirada del menú comercial
         else Tiene pedidos activos en curso (Excepción)
             Sistema-->>Admin: Rechazar eliminación directa (Sugerir pausar/ocultar del menú)
         end
         deactivate Sistema
 
-    else Acción C: Gestionar precios
+    else Acción C - Gestionar precios
         Admin->>Sistema: 2c. Actualizar precio de una pizza (IdPizza, NuevoPrecio)
         activate Sistema
         Sistema->>BD: Actualizar precio / stock / disponibilidad en catálogo
         activate BD
         BD-->>Sistema: Precio actualizado
         deactivate BD
-        Sistema-->>Admin: Confirmación: Precio actualizado en el menú
+        Sistema-->>Admin: Confirmación - Precio actualizado en el menú
         deactivate Sistema
     end
 ```
