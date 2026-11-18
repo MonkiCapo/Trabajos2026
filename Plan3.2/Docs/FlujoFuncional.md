@@ -7,7 +7,10 @@
 
 ## 1. Descripción General
 
-El sistema es una aplicación distribuida de gestión de pedidos de pizzería compuesta por cuatro procesos independientes que se comunican mediante HTTP REST y TCP Sockets.
+El sistema es una aplicación **cliente-servidor** de gestión de pedidos de pizzería compuesta por dos procesos independientes que se comunican mediante **HTTP REST (JSON)**:
+
+- **Consola.Cliente:** interfaz de usuario final (registro, pedidos, seguimiento).
+- **Api.Pizzeria:** backend central (Minimal API) con validación, reglas de negocio y persistencia en MySQL.
 
 ---
 
@@ -15,23 +18,24 @@ El sistema es una aplicación distribuida de gestión de pedidos de pizzería co
 
 ```
 ┌─────────────────────┐
-│   Consola.Cliente   │  ← Interfaz del usuario final
+│   Consola.Cliente   │  ← Usuario final
 │   (App de consola)  │
 └─────────┬───────────┘
           │ HTTP (JSON)
           ▼
-┌─────────────────────┐       TCP Socket        ┌──────────────────┐
-│   Api.Pizzeria      │◄────────────────────────►│  Consola.Cocina  │
-│   (Backend Central) │       TCP Socket        │  (Simula cocción)│
-│                     │◄────────────────────────►├──────────────────┤
-│   - Minimal API     │                         │ Consola.Reparto  │
-│   - SocketServer    │                         │ (Simula entrega) │
-│   - PedidoService   │                         └──────────────────┘
+┌─────────────────────┐
+│   Api.Pizzeria      │  ← Backend central (también usado por el
+│   (Minimal API)     │    administrador vía Swagger UI)
+│                     │
+│   - Endpoints REST  │
+│   - FluentValidation│
+│   - Middleware      │
 └─────────┬───────────┘
-          │ SQL
+          │ SQL (Dapper + MySqlConnector)
           ▼
 ┌─────────────────────┐
-│   MySQL (5to_Pizza) │
+│   MySQL             │
+│   (5to_Pizzeria)    │
 └─────────────────────┘
 ```
 
@@ -43,13 +47,13 @@ El sistema es una aplicación distribuida de gestión de pedidos de pizzería co
 
 ```
 1. El cliente inicia la Consola.Cliente
-2. Selecciona opción 1 (Registrar) o 2 (Buscar)
-3. La app envía POST /api/clientes o GET /api/clientes/{id}
-4. El backend valida con FluentValidation y persiste en MySQL
-5. El cliente queda "activo" en la consola para operar
+2. Selecciona la opción "Registrar" e ingresa sus datos
+3. La app envía POST /api/clientes
+4. El backend valida con FluentValidation y verifica unicidad de email
+5. El cliente queda registrado y recibe su id
 ```
 
-### Fase 2: Creación del Pedido (Flujo Principal)
+### Fase 2: Creación del Pedido
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -60,53 +64,47 @@ El sistema es una aplicación distribuida de gestión de pedidos de pizzería co
 │     └─ Body: { clienteEmail, items[] }                             │
 │                                                                     │
 │  2. BACKEND valida:                                                 │
-│     ├─ FluentValidation (PedidoRequestValidator)                   │
-│     ├─ Verifica que el cliente existe en MySQL                     │
-│     └─ Verifica que cada pizza del catálogo existe                 │
+│     ├─ FluentValidation (al menos un item, cantidades positivas)   │
+│     └─ Resuelve cliente por email y pizzas por nombre (IN)         │
 │                                                                     │
-│  3. BACKEND crea el pedido en MySQL:                               │
-│     ├─ PEDIDO (estado: EsperaConfirmacion)                         │
-│     ├─ ITEM_PEDIDO (cada pizza con precio unitario)                │
-│     └─ HISTORIAL_ESTADO_PEDIDO (registro del cambio)               │
+│  3. BACKEND abre TRANSACCIÓN y:                                    │
+│     ├─ Verifica que cada pizza esté disponible                     │
+│     ├─ Descuenta stock atómicamente:                               │
+│     │    UPDATE PIZZA SET stock = stock - @Cantidad                │
+│     │    WHERE id = @Id AND stock >= @Cantidad                     │
+│     ├─ INSERT PEDIDO (estado: EsperaConfirmacion)                  │
+│     ├─ INSERT ITEM_PEDIDO (precio unitario congelado)              │
+│     └─ INSERT HISTORIAL_ESTADO_PEDIDO                              │
 │                                                                     │
-│  4. BACKEND envía por socket TCP a COCINA:                         │
-│     └─ { accion: "nuevo_pedido", pedidoId, items[] }               │
+│  4. COMMIT → Responde HTTP 201:                                    │
+│     └─ { pedidoId, estado, total, fechaCreacion }                  │
 │                                                                     │
-│  5. COCINA recibe y responde ACK inmediato:                        │
-│     └─ { accion: "ack", pedidoId, status: "recibido" }            │
-│                                                                     │
-│  6. BACKEND actualiza estado a EnPreparacion                       │
-│     └─ Responde HTTP 201 al cliente                                │
-│                                                                     │
-│  7. COCINA simula cocción (6 segundos en hilo secundario)          │
-│     └─ Envía evento: { accion: "pedido_preparado", pedidoId }     │
-│                                                                     │
-│  8. BACKEND recibe evento y actualiza estado a EnViaje             │
-│                                                                     │
-│  9. BACKEND envía por socket a REPARTO:                            │
-│     └─ { accion: "asignar_entrega", pedidoId, direccion }         │
-│                                                                     │
-│ 10. REPARTO recibe y responde ACK inmediato                        │
-│                                                                     │
-│ 11. REPARTO simula entrega (6 segundos en hilo secundario)         │
-│     └─ Envía evento: { accion: "pedido_entregado", pedidoId }     │
-│                                                                     │
-│ 12. BACKEND recibe evento y actualiza estado a Entregado           │
+│  En cualquier fallo: ROLLBACK → HTTP 400 con detalle               │
 │                                                                     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### Fase 3: Consulta y Seguimiento
+### Fase 3: Ciclo de Vida del Pedido (Administrador)
 
 ```
-- El cliente puede consultar el estado vía GET /api/pedidos/{id}
+1. El pedido nace en EsperaConfirmacion
+2. El administrador avanza el estado con PUT /api/pedidos/{id}/estado:
+   - EnPreparacion: simula la aceptación en cocina
+   - EnViaje:       simula la salida a reparto
+   - Entregado:     simula la entrega al cliente
+3. Cada cambio valida la transición y se registra en el historial
+```
+
+### Fase 4: Consulta y Seguimiento (Cliente)
+
+```
+- El cliente consulta el estado vía GET /api/pedidos/{id}
 - La Consola.Cliente implementa polling cada 2 segundos
-- Muestra los cambios de estado en tiempo real con colores:
+- Muestra los cambios de estado con colores:
   • Amarillo = EsperaConfirmacion
   • Azul     = EnPreparacion
   • Magenta  = EnViaje
   • Verde    = Entregado
-  • Rojo     = Cancelado
 ```
 
 ---
@@ -114,97 +112,74 @@ El sistema es una aplicación distribuida de gestión de pedidos de pizzería co
 ## 4. Máquina de Estados del Pedido
 
 ```
-                    ┌──────────────────┐
-                    │ EsperaConfirmacion│
-                    └────────┬─────────┘
-                             │ ACK de Cocina recibido
-                             ▼
-                    ┌──────────────────┐
-                    │  EnPreparacion   │
-                    └────────┬─────────┘
-                             │ Cocina envía "pedido_preparado"
-                             ▼
-                    ┌──────────────────┐
-                    │    EnViaje       │
-                    └────────┬─────────┘
-                             │ Reparto envía "pedido_entregado"
-                             ▼
-                    ┌──────────────────┐
-                    │   Entregado      │
-                    └──────────────────┘
-
-    Transición de error:
-    EsperaConfirmacion ──(timeout/rechazo)──► Cancelado
+EsperaConfirmacion ──► EnPreparacion ──► EnViaje ──► Entregado
 ```
+
+| Transición | Disparador (Administrador) |
+|-----------|---------------------------|
+| `EsperaConfirmacion` → `EnPreparacion` | `PUT /api/pedidos/{id}/estado` con `EnPreparacion` |
+| `EnPreparacion` → `EnViaje` | `PUT /api/pedidos/{id}/estado` con `EnViaje` |
+| `EnViaje` → `Entregado` | `PUT /api/pedidos/{id}/estado` con `Entregado` |
+
+- Solo se permite avanzar **un estado por vez** y en orden.
+- Enviar el estado actual es **idempotente** (responde 200 sin cambios).
+- Cualquier salto fuera de orden responde **409 Conflict** sin tocar la base.
 
 ---
 
-## 5. Protocolo de Comunicación Socket
-
-### Handshake de conexión
-```
-1. Cliente TCP se conecta al puerto 7000
-2. Envía: { "accion": "identificar", "tipo": "cocina" }  ó  { "accion": "identificar", "tipo": "reparto" }
-3. El servidor lo registra como cliente activo
-4. Queda en bucle de escucha de mensajes
-```
-
-### Protocolo ACK (Confirmación)
-```
-Backend envía pedido → Cliente responde ACK → Backend confirma
-                     ↻ Si no hay ACK en 5 segundos → Timeout → Pedido cancelado
-```
-
-### Protocolo de Eventos
-```
-Cocina:    { "accion": "pedido_preparado", "pedidoId": N }
-Reparto:   { "accion": "pedido_entregado", "pedidoId": N }
-```
-
----
-
-## 6. Endpoints de la API REST
+## 5. Endpoints de la API REST
 
 | Método | Ruta | Descripción |
 |--------|------|-------------|
 | `POST` | `/api/clientes` | Registrar nuevo cliente |
 | `GET` | `/api/clientes/{id}` | Obtener cliente por ID |
 | `GET` | `/api/clientes/email/{email}` | Obtener cliente por email |
-| `GET` | `/api/pizzas` | Catálogo de pizzas disponibles |
+| `GET` | `/api/pizzas` | Catálogo de pizzas disponibles (`?todas=true` para admin) |
+| `POST` | `/api/pizzas` | Agregar pizza al catálogo (admin) |
+| `PUT` | `/api/pizzas/{id}` | Editar pizza: precio, stock, disponibilidad (admin) |
+| `DELETE` | `/api/pizzas/{id}` | Eliminar pizza sin pedidos (admin) |
 | `POST` | `/api/pedidos` | Crear un nuevo pedido |
-| `GET` | `/api/pedidos/{id}` | Consultar estado de un pedido |
+| `GET` | `/api/pedidos/{id}` | Consultar detalle de un pedido |
+| `GET` | `/api/pedidos` | Listar pedidos (filtro opcional `?estado=`) |
+| `PUT` | `/api/pedidos/{id}/estado` | Avanzar el estado del pedido (admin) |
 
 ---
 
-## 7. Manejo de Errores
+## 6. Manejo de Errores
 
 | Escenario | Comportamiento |
 |-----------|---------------|
-| Cocina no conectada | Se lanza `SocketException` → Pedido cancelado → HTTP 503 |
-| Cocina no responde ACK en 5s | Timeout → Pedido cancelado → HTTP 503 |
-| Reparto no conectado | Solo se registra warning (el pedido sigue en EnViaje) |
-| Reparto no responde ACK | Solo se registra warning (el pedido sigue en EnViaje) |
-| Email de cliente inexistente | HTTP 400 con mensaje descriptivo |
-| Pizza inexistente en catálogo | Excepción `ArgumentException` → HTTP 400 |
-| Email duplicado al registrar | MySQL error 1062 → HTTP 400 |
+| Email de cliente inexistente al crear pedido | HTTP 400 con detalle |
+| Pizza inexistente en el catálogo | HTTP 400 con detalle |
+| Pizza no disponible (`disponible = 0`) | HTTP 400 con detalle |
+| Stock insuficiente | HTTP 400; transacción revertida (rollback) |
+| Email duplicado al registrar | Middleware detecta MySQL 1062 → HTTP 409 |
+| Nombre de pizza duplicado | HTTP 409 |
+| Pedido inexistente | HTTP 404 |
+| Transición de estado fuera de orden | HTTP 409 con `estadoActual` y `estadoSolicitado` |
+| Error inesperado | HTTP 500 (el middleware registra el detalle en el log) |
+
+Toda la traducción de excepciones a respuestas HTTP está centralizada en el `ExceptionHandlingMiddleware`.
 
 ---
 
-## 8. Flujo de Datos en la Base de Datos
+## 7. Flujo de Datos en la Base de Datos
 
 ```sql
--- Transacción de creación de pedido:
+-- Transacción de creación de pedido (todo o nada):
 BEGIN TRANSACTION;
-  INSERT INTO PEDIDO (cliente_id, estado_id, ...)     -- Paso 1
-  INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, ...)  -- Paso 2
-  INSERT INTO HISTORIAL_ESTADO_PEDIDO (...)            -- Paso 3
-COMMIT;
+  UPDATE PIZZA SET stock = stock - @Cantidad
+    WHERE id = @Id AND stock >= @Cantidad;         -- Paso 1: stock atómico
+  INSERT INTO PEDIDO (cliente_id, estado_id, ...)  -- Paso 2
+  INSERT INTO ITEM_PEDIDO (pedido_id, pizza_id, ...) -- Paso 3 (multi-insert)
+  INSERT INTO HISTORIAL_ESTADO_PEDIDO (...)          -- Paso 4
+COMMIT;  -- o ROLLBACK si algo falla
 
--- Transición de estado (posterior):
+-- Cambio de estado:
 BEGIN TRANSACTION;
-  UPDATE PEDIDO SET estado_id = @nuevoEstado ...       -- Actualizar
-  INSERT INTO HISTORIAL_ESTADO_PEDIDO (...)            -- Registrar
+  UPDATE PEDIDO SET estado_id = @nuevoEstado ...     -- Actualizar
+  INSERT INTO HISTORIAL_ESTADO_PEDIDO (...)          -- Registrar
 COMMIT;
 ```
 
-> **Nota:** La interacción por socket se realiza **después** de commitear la transacción, para no bloquear la base de datos durante la comunicación de red.
+> **Nota:** el descuento de stock ocurre **dentro** de la transacción del pedido, garantizando que nunca se descuente inventario de un pedido que no se persiste.

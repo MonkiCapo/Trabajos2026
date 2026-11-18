@@ -17,7 +17,9 @@ CREATE TABLE IF NOT EXISTS PIZZA (
     nombre VARCHAR(100) NOT NULL,
     tamanio VARCHAR(50) NOT NULL,
     precio DECIMAL(10,2) NOT NULL,
-    descripcion TEXT
+    descripcion TEXT,
+    stock INT NOT NULL DEFAULT 0,
+    disponible TINYINT(1) NOT NULL DEFAULT 1
 );
 
 -- 3. INGREDIENTE
@@ -83,13 +85,15 @@ INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (1, 'EsperaConfirmac
 INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (2, 'EnPreparacion', 2);
 INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (3, 'EnViaje', 3);
 INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (4, 'Entregado', 4);
-INSERT IGNORE INTO ESTADO_PEDIDO (id, nombre, orden) VALUES (5, 'Cancelado', 5);
 
--- Pizzas
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (1, 'Pizza Pepperoni', 'Grande', 1500.00, 'Queso muzzarella, salsa de tomate y abundante pepperoni.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (2, 'Pizza Jamón y Queso', 'Grande', 1400.00, 'Queso muzzarella, jamón cocido y aceitunas.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (3, 'Pizza Muzzarella', 'Grande', 1200.00, 'Doble queso muzzarella, salsa de tomate y orégano.');
-INSERT IGNORE INTO PIZZA (id, nombre, tamanio, precio, descripcion) VALUES (4, 'Pizza Napolitana', 'Grande', 1300.00, 'Queso muzzarella, rodajas de tomate, ajo y albahaca fresco.');
+-- Pizzas (stock inicial 50; disponible 1 = visible en el menú)
+INSERT INTO PIZZA (id, nombre, tamanio, precio, descripcion, stock, disponible) VALUES
+(1, 'Pizza Pepperoni', 'Grande', 1500.00, 'Queso muzzarella, salsa de tomate y abundante pepperoni.', 50, 1),
+(2, 'Pizza Jamón y Queso', 'Grande', 1400.00, 'Queso muzzarella, jamón cocido y aceitunas.', 50, 1),
+(3, 'Pizza Muzzarella', 'Grande', 1200.00, 'Doble queso muzzarella, salsa de tomate y orégano.', 50, 1),
+(4, 'Pizza Napolitana', 'Grande', 1300.00, 'Queso muzzarella, rodajas de tomate, ajo y albahaca fresco.', 50, 1)
+ON DUPLICATE KEY UPDATE stock = VALUES(stock), disponible = VALUES(disponible),
+    descripcion = COALESCE(descripcion, VALUES(descripcion));
 
 -- Ingredientes
 INSERT IGNORE INTO INGREDIENTE (id, nombre) VALUES (1, 'Muzzarella');
@@ -123,7 +127,3 @@ INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 4);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 7);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 8);
 INSERT IGNORE INTO PIZZA_INGREDIENTE (pizza_id, ingrediente_id) VALUES (4, 9);
-
-
-
-SELECT * FROM 

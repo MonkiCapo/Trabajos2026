@@ -1,4 +1,4 @@
-using System.Data;
+using System.Data.Common;
 using MySqlConnector;
 using Core.Pizzeria.Servicios.IRepositorios;
 
@@ -13,7 +13,7 @@ public class Ado : IAdo
         _connectionString = connectionString;
     }
 
-    public IDbConnection GetDbConnection()
+    public DbConnection GetDbConnection()
     {
         return new MySqlConnection(_connectionString);
     }

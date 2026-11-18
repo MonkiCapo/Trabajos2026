@@ -268,13 +268,6 @@ class Program
         {
             var response = await _httpClient.PostAsJsonAsync("/api/pedidos", pedidoRequest);
 
-            if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
-            {
-                var errObj = await response.Content.ReadFromJsonAsync<JsonElement>();
-                MostrarError($"[503] Cocina no disponible: {errObj.GetProperty("error").GetString()}");
-                return;
-            }
-
             if (!response.IsSuccessStatusCode)
             {
                 string body = await response.Content.ReadAsStringAsync();
@@ -352,7 +345,7 @@ class Program
             Console.ResetColor();
 
             // Si el pedido esta activo, ofrecer polling
-            if (estado != "Entregado" && estado != "Cancelado")
+            if (estado != "Entregado")
             {
                 Console.Write("\n  Seguir este pedido en tiempo real? (s/n): ");
                 if (Console.ReadLine()?.Trim().ToLower() == "s")
@@ -372,7 +365,7 @@ class Program
     {
         string estado = estadoActual;
 
-        while (estado != "Entregado" && estado != "Cancelado")
+        while (estado != "Entregado")
         {
             await Task.Delay(2000);
 
@@ -390,7 +383,6 @@ class Program
                     "EnPreparacion" => ConsoleColor.Blue,
                     "EnViaje" => ConsoleColor.Magenta,
                     "Entregado" => ConsoleColor.Green,
-                    "Cancelado" => ConsoleColor.Red,
                     _ => ConsoleColor.White
                 };
 
@@ -404,20 +396,10 @@ class Program
         }
 
         Console.WriteLine();
-        if (estado == "Entregado")
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("  ============================================");
-            Console.WriteLine("        PIZZA ENTREGADA! BUEN PROVECHO!");
-            Console.WriteLine("  ============================================");
-        }
-        else
-        {
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine("  ============================================");
-            Console.WriteLine("        EL PEDIDO FUE CANCELADO.");
-            Console.WriteLine("  ============================================");
-        }
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("  ============================================");
+        Console.WriteLine("        PIZZA ENTREGADA! BUEN PROVECHO!");
+        Console.WriteLine("  ============================================");
         Console.ResetColor();
     }
 

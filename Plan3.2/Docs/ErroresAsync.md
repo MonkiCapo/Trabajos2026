@@ -7,35 +7,34 @@
 
 ## 1. Introducción
 
-En un sistema distribuido como PizzeriaAPI, las operaciones de red (HTTP, Sockets TCP) son inherentemente asíncronas. C# proporciona `async`/`await` para trabajar con operaciones no bloqueantes, pero el manejo de errores en este contexto tiene particularidades que deben tenerse en cuenta.
+En un sistema cliente-servidor como PizzeriaAPI, las operaciones de red (HTTP) y de base de datos (MySQL) son inherentemente asíncronas. C# proporciona `async`/`await` para trabajar con operaciones no bloqueantes, pero el manejo de errores en este contexto tiene particularidades que deben tenerse en cuenta.
 
 ---
 
 ## 2. Patrón básico: async/await + try/catch
 
-### 2.1 Llamada HTTP desde el cliente
+### 2.1 Llamada HTTP desde el cliente (Consola.Cliente)
 
 ```csharp
-public async Task<PedidoResponse> CrearPedidoAsync(PedidoRequest request)
+public async Task<PedidoDetalle> ConsultarPedidoAsync(int pedidoId, CancellationToken ct)
 {
-    using var httpClient = new HttpClient();
-    var json = JsonSerializer.Serialize(request);
-    var content = new StringContent(json, Encoding.UTF8, "application/json");
+    using var httpClient = _factory.CreateClient();
+    httpClient.Timeout = TimeSpan.FromSeconds(10);
 
     try
     {
-        HttpResponseMessage response = await httpClient.PostAsync(
-            "http://localhost:5000/api/pedidos", content);
+        HttpResponseMessage response = await httpClient.GetAsync(
+            $"http://localhost:5183/api/pedidos/{pedidoId}", ct);
 
         response.EnsureSuccessStatusCode();
 
-        string body = await response.Content.ReadAsStringAsync();
-        return JsonSerializer.Deserialize<PedidoResponse>(body);
+        string body = await response.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<PedidoDetalle>(body);
     }
     catch (HttpRequestException ex)
     {
-        Console.WriteLine($"[ERROR] Fallo de red: {ex.Message}");
-        throw new ServicioNoDisponibleException("No se pudo contactar al servidor");
+        Console.WriteLine($"[ERROR] No se pudo conectar a la API: {ex.Message}");
+        throw new ServicioNoDisponibleException("La API no esta disponible");
     }
     catch (TaskCanceledException)
     {
@@ -54,182 +53,168 @@ public async Task<PedidoResponse> CrearPedidoAsync(PedidoRequest request)
 - ✅ Se capturan excepciones específicas en lugar de usar `catch (Exception)` genérico.
 - ✅ Se registra el error en log antes de relanzar.
 - ✅ Se transforman excepciones técnicas en excepciones de dominio (`ServicioNoDisponibleException`).
-- ✅ `HttpClient` se descarta correctamente con `using`.
+- ✅ `Timeout` explícito en `HttpClient` + `CancellationToken` propagado desde el llamador.
 
 ---
 
-### 2.2 Conexión por Socket TCP (Backend → Cocina)
+### 2.2 Acceso a la base de datos con Dapper + MySqlConnector
 
 ```csharp
-public async Task<bool> EnviarPedidoACocinaAsync(Pedido pedido, int timeoutSegundos = 5)
+public async Task<IEnumerable<Pizza>> ObtenerDisponiblesAsync(CancellationToken ct)
 {
-    using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    const string sql = "SELECT id, nombre, tamanio, precio, descripcion, stock, disponible " +
+                       "FROM PIZZA WHERE disponible = 1 ORDER BY nombre;";
+
+    using var conexion = await AbrirConexionAsync(ct);
 
     try
     {
-        var connectTask = socket.ConnectAsync("localhost", 7000);
-        if (await Task.WhenAny(connectTask, Task.Delay(timeoutSegundos * 1000)) == connectTask)
-        {
-            await connectTask; // Propagar excepción si la conexión falló
-
-            string mensaje = JsonSerializer.Serialize(new
-            {
-                accion = "nuevo_pedido",
-                pedidoId = pedido.Id,
-                items = pedido.Items
-            });
-
-            byte[] data = Encoding.UTF8.GetBytes(mensaje + "\n");
-            await socket.SendAsync(data, SocketFlags.None);
-
-            // Esperar ACK
-            byte[] buffer = new byte[1024];
-            int recibidos = await socket.ReceiveAsync(buffer, SocketFlags.None);
-            string respuesta = Encoding.UTF8.GetString(buffer, 0, recibidos);
-
-            return respuesta.Contains("ack");
-        }
-        else
-        {
-            Console.WriteLine($"[TIMEOUT] Cocina no respondio en {timeoutSegundos}s");
-            return false;
-        }
+        return await conexion.QueryAsync<Pizza>(
+            new CommandDefinition(sql, cancellationToken: ct));
     }
-    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+    catch (MySqlException ex)
     {
-        Console.WriteLine("[ERROR] Conexion rechazada por Cocina");
-        return false;
-    }
-    catch (SocketException ex)
-    {
-        Console.WriteLine($"[ERROR] Socket: {ex.SocketErrorCode} - {ex.Message}");
-        return false;
-    }
-    catch (OperationCanceledException)
-    {
-        Console.WriteLine("[ERROR] Operacion cancelada");
-        return false;
+        Console.WriteLine($"[ERROR] Fallo de MySQL: {ex.Number} - {ex.Message}");
+        throw;
     }
 }
 ```
 
 **Análisis de buenas prácticas:**
-- ✅ Uso de `Task.WhenAny` para implementar timeout manual sobre `ConnectAsync`.
-- ✅ Filtros de excepción (`when`) para tratar distintos errores de socket.
-- ✅ `Socket` envuelto en `using` para liberar recursos.
-- ❌ **Mejorable:** El timeout con `Task.Delay` deja una tareas huérfanas (no se cancelan). Versión mejorada abajo.
+- ✅ `OpenAsync` y `CommandDefinition` con `CancellationToken`: si el request HTTP se cancela, la consulta se aborta.
+- ✅ `MySqlException` tiene `Number` (código de error del servidor), útil para distinguir casos (p. ej. 1062 = clave duplicada).
+- ✅ `using var conexion` garantiza el cierre de la conexión al pool aunque falle la query.
 
 ---
 
-### 2.3 Versión mejorada con CancellationToken
+### 2.3 Transacción asíncrona con rollback (PedidoService)
 
 ```csharp
-public async Task<bool> EnviarPedidoACocinaAsync(Pedido pedido, CancellationToken ct = default)
+await using var conexion = _ado.GetDbConnection();
+await conexion.OpenAsync(ct);
+await using var transaction = await conexion.BeginTransactionAsync(ct);
+
+try
 {
-    using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+    // 1. Descuento atómico de stock por pizza
+    // 2. INSERT pedido (EsperaConfirmacion)
+    // 3. Multi-INSERT de ítems
+    // 4. INSERT historial de estado
+
+    await transaction.CommitAsync(ct);
+}
+catch (ArgumentException)
+{
+    await transaction.RollbackAsync(ct);
+    throw; // el middleware lo traduce a 400
+}
+catch (Exception ex)
+{
+    await transaction.RollbackAsync(ct);
+    _logger.LogError(ex, "[PEDIDOSERVICE] Error al crear el pedido; transaccion revertida.");
+    throw;
+}
+```
+
+**Análisis de buenas prácticas:**
+- ✅ `BeginTransactionAsync`/`CommitAsync`/`RollbackAsync`: toda la cadena es asíncrona, sin bloquear hilos.
+- ✅ Rollback en **cualquier** fallo: nunca queda stock descontado sin pedido persistido.
+- ✅ El error esperado (`ArgumentException`) se relanza sin ruido; el inesperado se loguea con stack trace.
+- ✅ El `CancellationToken` se propaga a cada operación dentro de la transacción.
+
+---
+
+## 3. Traducción centralizada: ExceptionHandlingMiddleware
+
+En lugar de repetir `try/catch` en cada endpoint, la API centraliza la traducción de excepciones:
+
+```csharp
+catch (PedidoNoEncontradoException)
+{
+    await EscribirJsonAsync(context, 404,
+        new { error = "Pedido no encontrado." });
+}
+catch (TransicionInvalidaException ex)
+{
+    await EscribirJsonAsync(context, 409,
+        new { error = ex.Message,
+              estadoActual = ex.EstadoActual.ToString(),
+              estadoSolicitado = ex.EstadoSolicitado.ToString() });
+}
+catch (MySqlException ex) when (ex.Number == 1062)
+{
+    await EscribirJsonAsync(context, 409,
+        new { error = "Ya existe un registro con esos datos..." });
+}
+catch (ArgumentException ex)
+{
+    await EscribirJsonAsync(context, 400,
+        new { error = "Datos invalidos", detalles = ex.Message });
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex, "[MIDDLEWARE] Error no controlado: {Path}", context.Request.Path);
+    await EscribirJsonAsync(context, 500,
+        new { error = "Ocurrio un error inesperado..." });
+}
+```
+
+**Análisis:**
+- ✅ **Filtros de excepción (`when`):** permiten distinguir el error 1062 de MySQL sin anidar catch.
+- ✅ **Orden de captura:** de lo más específico a lo más general; el `Exception` genérico va último.
+- ✅ **Respuesta uniforme:** todos los errores salen como JSON con el mismo formato.
+- ✅ **Log solo para 500:** los errores esperados (400/404/409) no ensucian el log.
+
+---
+
+## 4. Escenario: API caída desde la Consola.Cliente
+
+```csharp
+public static async Task ProbarConexionAsync()
+{
+    using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
 
     try
     {
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(5));
-
-        await socket.ConnectAsync(new IPEndPoint(IPAddress.Loopback, 7000), cts.Token);
-
-        string mensaje = JsonSerializer.Serialize(new
-        {
-            accion = "nuevo_pedido",
-            pedidoId = pedido.Id,
-            items = pedido.Items
-        });
-
-        byte[] data = Encoding.UTF8.GetBytes(mensaje + "\n");
-        await socket.SendAsync(data, SocketFlags.None, cts.Token);
-
-        byte[] buffer = new byte[1024];
-        int recibidos = await socket.ReceiveAsync(buffer, SocketFlags.None, cts.Token);
-        string respuesta = Encoding.UTF8.GetString(buffer, 0, recibidos);
-
-        return respuesta.Contains("ack");
+        var response = await httpClient.GetAsync("http://localhost:5183/api/pizzas");
+        response.EnsureSuccessStatusCode();
+        Console.WriteLine("API disponible.");
     }
-    catch (OperationCanceledException)
+    catch (HttpRequestException ex)
     {
-        Console.WriteLine("[TIMEOUT] Cocina no respondio a tiempo");
-        return false;
+        Console.WriteLine($"Fallo capturado: {ex.Message}");
+        Console.WriteLine("Accion: verificar que la API este corriendo en el puerto 5183");
     }
-    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.ConnectionRefused)
+    catch (TaskCanceledException)
     {
-        Console.WriteLine("[ERROR] Cocina rechazo la conexion");
-        return false;
+        Console.WriteLine("Timeout: la API no respondio en 5 segundos.");
+        Console.WriteLine("Accion: reintentar mas tarde");
     }
 }
 ```
 
-**Mejoras:**
-- ✅ `CancellationTokenSource` con `CancelAfter()` reemplaza el `Task.WhenAny` manual.
-- ✅ Se cancela correctamente la tarea de conexión si expira el plazo.
-- ✅ Se usa `CreateLinkedTokenSource` para permitir cancelación externa.
-
 ---
 
-## 3. Escenario: Fallo simulado de red
-
-```csharp
-// Simulación de fallo para pruebas
-public static async Task SimularFalloDeRed()
-{
-    Console.WriteLine("Simulando corte de red...");
-
-    try
-    {
-        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-        // Intentar conectar a un puerto que no existe
-        await socket.ConnectAsync("localhost", 9999);
-    }
-    catch (SocketException ex)
-    {
-        Console.WriteLine($"Fallo capturado: {ex.SocketErrorCode}");
-        Console.WriteLine($"Mensaje: {ex.Message}");
-
-        switch (ex.SocketErrorCode)
-        {
-            case SocketError.ConnectionRefused:
-                Console.WriteLine("Accion: Reintentar mas tarde");
-                break;
-            case SocketError.TimedOut:
-                Console.WriteLine("Accion: Cancelar pedido");
-                break;
-            case SocketError.HostUnreachable:
-                Console.WriteLine("Accion: Verificar conectividad de red");
-                break;
-            default:
-                Console.WriteLine("Accion: Error desconocido, loguear y escalar");
-                break;
-        }
-    }
-}
-```
-
----
-
-## 4. Buenas prácticas resumidas
+## 5. Buenas prácticas resumidas
 
 | Práctica | Descripción |
 |----------|-------------|
-| **Usar CancellationToken** | Siempre pasar `CancellationToken` a operaciones async de red para poder cancelarlas. |
-| **Timeouts explícitos** | No confiar en timeouts por defecto; establecerlos siempre (`CancelAfter`, `Task.WhenAny`). |
-| **Capturar excepciones específicas** | Preferir `SocketException`, `HttpRequestException`, `TaskCanceledException` sobre `Exception` genérico. |
-| **Filtros de excepción (`when`)** | Permite switchear sobre `SocketErrorCode` sin anidar catch. |
+| **Usar CancellationToken** | Siempre propagar el token a operaciones async de red y base de datos. |
+| **Timeouts explícitos** | No confiar en valores por defecto; establecerlos (`HttpClient.Timeout`, `CancelAfter`). |
+| **Capturar excepciones específicas** | Preferir `HttpRequestException`, `TaskCanceledException`, `MySqlException` sobre `Exception` genérico. |
+| **Filtros de excepción (`when`)** | Permiten distinguir códigos de error (p. ej. `MySqlException.Number == 1062`) sin anidar catch. |
 | **Log antes de relanzar** | Registrar el error en el punto de captura antes de propagar hacia arriba. |
 | **No mezclar sync con async** | Evitar `.Result` o `.Wait()`; usar `await` en toda la cadena. |
-| **`using` en recursos IDisposable** | `Socket`, `HttpClient`, `CancellationTokenSource` deben liberarse. |
+| **`using` en recursos IDisposable** | `HttpClient`, `DbConnection`, `DbTransaction` deben liberarse. |
+| **Transacciones asíncronas** | `BeginTransactionAsync` + `CommitAsync`/`RollbackAsync` para escrituras multi-tabla. |
 
 ---
 
-## 5. Conclusión
+## 6. Conclusión
 
-El manejo de errores asincrónicos en C# para sistemas distribuidos se basa en tres pilares:
-1. **`async`/`await`** para no bloquear hilos mientras se espera la red.
-2. **`try/catch` con excepciones específicas** para distinguir tipos de fallo.
+El manejo de errores asincrónicos en C# para sistemas cliente-servidor se basa en tres pilares:
+1. **`async`/`await`** para no bloquear hilos mientras se espera la red o la base de datos.
+2. **`try/catch` con excepciones específicas y filtros `when`** para distinguir tipos de fallo.
 3. **`CancellationToken`** para implementar timeouts y cancelación graceful.
 
-Estos patrones permiten que PizzeriaAPI responda adecuadamente ante fallos de red, timeouts y servicios caídos, manteniendo la consistencia del sistema mediante la máquina de estados y los logs de error.
+Estos patrones permiten que PizzeriaAPI responda adecuadamente ante fallos de red, errores de datos y conflictos de negocio, manteniendo la consistencia mediante transacciones, la máquina de estados y los logs de error.

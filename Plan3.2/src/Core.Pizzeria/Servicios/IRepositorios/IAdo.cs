@@ -1,8 +1,8 @@
-using System.Data;
+using System.Data.Common;
 
 namespace Core.Pizzeria.Servicios.IRepositorios;
 
 public interface IAdo
 {
-    IDbConnection GetDbConnection();
+    DbConnection GetDbConnection();
 }

@@ -1,4 +1,6 @@
-using System.Data;
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using Dapper;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios.IRepositorios;
@@ -7,72 +9,76 @@ namespace Dapper.Pizzeria;
 
 public class ClienteRepositorio : DapperRepo, IClienteRepositorio
 {
-    public ClienteRepositorio(IAdo _ado) : base(_ado) { }
+    private const string Columnas = "id, nombre, email, telefono, direccion";
 
-    public async Task<int> AgregarClienteAsync(Cliente cliente)
+    public ClienteRepositorio(IAdo ado) : base(ado) { }
+
+    public async Task<IEnumerable<Cliente>> ObtenerClientesAsync(CancellationToken ct = default)
     {
-        var sql = @"INSERT INTO CLIENTE (nombre, email, telefono, direccion) 
+        using var conexion = await AbrirConexionAsync(ct);
+        var sql = $"SELECT {Columnas} FROM CLIENTE;";
+        return await conexion.QueryAsync<Cliente>(new CommandDefinition(sql, cancellationToken: ct));
+    }
+
+    public async Task<Cliente?> ObtenerClientePorIdAsync(int id, CancellationToken ct = default)
+    {
+        using var conexion = await AbrirConexionAsync(ct);
+        var sql = $"SELECT {Columnas} FROM CLIENTE WHERE id = @Id;";
+        return await conexion.QueryFirstOrDefaultAsync<Cliente>(new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
+    }
+
+    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email, CancellationToken ct = default)
+    {
+        using var conexion = await AbrirConexionAsync(ct);
+        var sql = $"SELECT {Columnas} FROM CLIENTE WHERE email = @Email;";
+        return await conexion.QueryFirstOrDefaultAsync<Cliente>(new CommandDefinition(sql, new { Email = email }, cancellationToken: ct));
+    }
+
+    public async Task<int> AgregarClienteAsync(Cliente cliente, CancellationToken ct = default)
+    {
+        using var conexion = await AbrirConexionAsync(ct);
+        var sql = @"INSERT INTO CLIENTE (nombre, email, telefono, direccion)
                     VALUES (@Nombre, @Email, @Telefono, @Direccion);
                     SELECT LAST_INSERT_ID();";
-
-        var id = await Conexion.ExecuteScalarAsync<int>(sql, new
+        return await conexion.ExecuteScalarAsync<int>(new CommandDefinition(sql, new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion
-        });
-        return id;
+        }, cancellationToken: ct));
     }
 
-    public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id)
+    public async Task<bool> ActualizarClienteAsync(Cliente cliente, int id, CancellationToken ct = default)
     {
+        using var conexion = await AbrirConexionAsync(ct);
         var sql = @"UPDATE CLIENTE
-                    SET Nombre = @Nombre,
-                        Email = @Email,
-                        Telefono = @Telefono,
-                        Direccion = @Direccion
+                    SET nombre = @Nombre, email = @Email, telefono = @Telefono, direccion = @Direccion
                     WHERE id = @Id;";
-        var rowsAffected = await Conexion.ExecuteAsync(sql, new
+        var rowsAffected = await conexion.ExecuteAsync(new CommandDefinition(sql, new
         {
             cliente.Nombre,
             cliente.Email,
             cliente.Telefono,
             cliente.Direccion,
             Id = id
-        });
+        }, cancellationToken: ct));
         return rowsAffected > 0;
     }
 
-    public async Task<bool> EliminarClienteAsync(int id)
+    public async Task<bool> EliminarClienteAsync(int id, CancellationToken ct = default)
     {
+        using var conexion = await AbrirConexionAsync(ct);
         var sql = "DELETE FROM CLIENTE WHERE id = @Id;";
-        var rowsAffected = await Conexion.ExecuteAsync(sql, new { Id = id });
+        var rowsAffected = await conexion.ExecuteAsync(new CommandDefinition(sql, new { Id = id }, cancellationToken: ct));
         return rowsAffected > 0;
     }
 
-    public async Task<IEnumerable<Cliente>> ObtenerClientesAsync()
+    public async Task<bool> ExisteEmailDeClienteAsync(string emailExistente, CancellationToken ct = default)
     {
-        var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE;";
-        return await Conexion.QueryAsync<Cliente>(sql);
-    }
-
-    public async Task<Cliente?> ObtenerClientePorIdAsync(int id)
-    {
-        var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE id = @Id;";
-        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Id = id });
-    }
-
-    public async Task<Cliente?> ObtenerClientePorEmailAsync(string email)
-    {
-        var sql = "SELECT id, nombre, email, telefono, direccion FROM CLIENTE WHERE email = @Email;";
-        return await Conexion.QueryFirstOrDefaultAsync<Cliente>(sql, new { Email = email });
-    }
-
-    public async Task<bool> ExisteEmailDeClienteAsync(string emailExistente)
-    {
-        var sql = "SELECT COUNT(1) FROM CLIENTE WHERE email = @Email";
-        var count = await Conexion.ExecuteScalarAsync<int>(sql, new { Email = emailExistente });
+        using var conexion = await AbrirConexionAsync(ct);
+        var sql = "SELECT COUNT(1) FROM CLIENTE WHERE email = @Email;";
+        var count = await conexion.ExecuteScalarAsync<int>(new CommandDefinition(sql, new { Email = emailExistente }, cancellationToken: ct));
         return count > 0;
     }
 }

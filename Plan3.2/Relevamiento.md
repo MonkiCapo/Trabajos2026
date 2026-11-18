@@ -54,9 +54,13 @@ classDiagram
         +string Nombre
         +string Tamano
         +decimal Precio
+        +int Stock
+        +bool Disponible
         +List~string~ Ingredientes
         +decimal ObtenerPrecio()
         +void ActualizarPrecio(decimal nuevoPrecio)
+        +void ActualizarStock(int nuevoStock)
+        +void CambiarDisponibilidad(bool disponible)
         +string ObtenerDescripcion()
     }
 
@@ -99,7 +103,7 @@ classDiagram
 ### 2.1 Descripción de Elementos del Modelo
 
 * **`Cliente`**: Modela al cliente que realiza pedidos. Posee atributos de identificación y localización, y métodos para solicitar nuevos pedidos o actualizar sus datos de entrega.
-* **`Pizza`**: Representa el producto que ofrece la pizzería (con nombre, tamaño, precio e ingredientes) y métodos para consultar su información y tarifario.
+* **`Pizza`**: Representa el producto que ofrece la pizzería (con nombre, tamaño, precio, stock, disponibilidad e ingredientes) y métodos para consultar su información, actualizar el tarifario y gestionar el inventario.
 * **`ItemPedido`**: Entidad de soporte que desacopla la Pizza del Pedido, encapsulando la cantidad solicitada, el precio unitario pactado y el cálculo de subtotales (`Cantidad * PrecioUnitario`).
 * **`Pedido`**: Entidad central que nuclea al cliente, la lista de ítems solicitados y el ciclo de vida del pedido mediante sus métodos de cálculo de total y transición de estados.
 * **`EstadoPedido`**: Enumerador que contempla de forma exclusiva los cuatro estados especificados en la consigna:
@@ -129,6 +133,8 @@ erDiagram
         string nombre
         string tamanio
         decimal precio
+        int stock
+        boolean disponible
         string descripcion
     }
 
@@ -242,9 +248,9 @@ sequenceDiagram
 
     %% 5 & 6. Evaluación de Stock y Resultado
     alt Stock disponible (Flujo Principal)
-        Sistema->>BD: Registrar Pedido (Estado: EsperaConfirmacion / EnPreparacion)
+        Sistema->>BD: Registrar Pedido (Estado: EsperaConfirmacion)
         activate BD
-        Sistema->>BD: Descontar stock e ingredientes utilizados
+        Sistema->>BD: Descontar stock de pizzas (UPDATE atómico)
         BD-->>Sistema: Pedido registrado con éxito (Id generado)
         deactivate BD
         Sistema-->>Cliente: Mensaje de éxito, resumen del pedido y total a pagar
@@ -259,7 +265,7 @@ sequenceDiagram
 2. **Armado de la Orden:** Agrega las pizzas seleccionadas al carrito de compras.
 3. **Modificación Opcional (`<<Extend>>`):** Si el cliente decide realizar cambios previos a la confirmación, se activa el caso de uso *Modificar pedido*, recalculando los montos.
 4. **Verificación de Stock (`<<Include>>`):** Al solicitar la confirmación, el sistema ejecuta de manera obligatoria el caso de uso *Verificar stock* contra la base de datos.
-5. **Postcondición:** Con stock favorable, el pedido se persiste formalmente (avanzando a su preparación), se descuenta el inventario y se entrega el resumen al cliente.
+5. **Postcondición:** Con stock favorable, el pedido se persiste formalmente en estado `EsperaConfirmacion`, se descuenta el inventario de forma atómica dentro de la misma transacción y se entrega el resumen al cliente.
 
 ---
 
@@ -321,7 +327,7 @@ sequenceDiagram
     else Acción C: Gestionar precios
         Admin->>Sistema: 2c. Actualizar precio de una pizza (IdPizza, NuevoPrecio)
         activate Sistema
-        Sistema->>BD: Actualizar precio en catálogo
+        Sistema->>BD: Actualizar precio / stock / disponibilidad en catálogo
         activate BD
         BD-->>Sistema: Precio actualizado
         deactivate BD

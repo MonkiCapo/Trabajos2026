@@ -7,7 +7,7 @@
 
 ## 1. Introducción
 
-En un sistema distribuido, los fallos son **la norma, no la excepción**. Al estar compuesto por múltiples procesos que se comunican por red, cada interacción está expuesta a distintos tipos de imponderables. Este documento clasifica los fallos identificados en PizzeriaAPI y define las acciones correctivas para cada caso.
+En un sistema cliente-servidor, los fallos son **la norma, no la excepción**. Cada interacción HTTP o de base de datos está expuesta a imponderables: caídas de servicio, datos mal formados, conflictos de estado. Este documento clasifica los fallos identificados en PizzeriaAPI y define las acciones correctivas para cada caso.
 
 ---
 
@@ -17,25 +17,32 @@ En un sistema distribuido, los fallos son **la norma, no la excepción**. Al est
 
 | Tipo | Descripción | Ejemplo en el sistema |
 |------|-------------|----------------------|
-| **Timeout de conexión** | El socket TCP no logra establecer conexión dentro del tiempo límite. | API intenta conectar con Cocina pero el servidor no responde. |
-| **Conexión rechazada** | El host remoto rechaza activamente la conexión (puerto cerrado, proceso caído). | Servicio de Cocina no está ejecutándose. |
-| **Pérdida de mensaje** | Un mensaje enviado por socket nunca llega a destino. | Notificación de "Pedido Preparado" se pierde en la red. |
-| **Conexión interrumpida** | La conexión se cierra abruptamente durante la comunicación. | Cable de red cortado mientras Reparto notifica la entrega. |
+| **Timeout de conexión** | La petición HTTP no obtiene respuesta dentro del tiempo límite. | La API está sobrecargada y el cliente espera indefinidamente. |
+| **Conexión rechazada** | El host remoto rechaza activamente la conexión (proceso caído, puerto cerrado). | `HttpRequestException` al llamar a la API cuando no está corriendo. |
+| **Respuesta inesperada** | El servidor responde con un código no previsto por el cliente. | La Consola.Cliente recibe un 500 ante un error interno. |
 
 ### 2.2 Fallos de Proceso/Servicio
 
 | Tipo | Descripción | Ejemplo |
 |------|-------------|---------|
-| **Servicio no disponible** | El proceso remoto no está corriendo o falló al iniciar. | Cocina nunca se levantó. |
-| **Crash durante ejecución** | El servicio se cae inesperadamente mientras procesa. | Cocina falla a mitad de la preparación simulada. |
-| **Estado inconsistente** | La información del pedido difiere entre servicios. | API cree que el pedido está "EnPreparacion" pero Cocina lo perdió. |
+| **Servicio no disponible** | La API no está corriendo o falló al iniciar. | La consola del cliente no puede registrar ni pedir. |
+| **Caída de la base de datos** | MySQL se detiene o se pierde la conectividad. | `MySqlException` al abrir la conexión; la API responde 500. |
+| **Estado inconsistente** | La información difiere entre capas. | Stock descontado sin pedido persistido (se evita con transacciones). |
 
 ### 2.3 Fallos de Datos
 
 | Tipo | Descripción | Ejemplo |
 |------|-------------|---------|
-| **Datos inválidos** | El payload recibido no cumple el contrato esperado. | Cliente envía un JSON con campos faltantes. |
-| **Duplicación de mensajes** | El mismo mensaje llega más de una vez. | Cocina envía "PedidoPreparado" dos veces por un reintento. |
+| **Datos inválidos** | El payload recibido no cumple el contrato esperado. | JSON con email vacío o pedido sin ítems. |
+| **Datos duplicados** | Un valor único se intenta registrar dos veces. | Segundo cliente con el mismo email; pizza con nombre repetido. |
+
+### 2.4 Fallos de Reglas de Negocio
+
+| Tipo | Descripción | Ejemplo |
+|------|-------------|---------|
+| **Recurso inexistente** | Se referencia una entidad que no está en la base. | Pedido, cliente o pizza con id inexistente. |
+| **Transición de estado inválida** | Se intenta saltar pasos del ciclo de vida. | Pasar de `EsperaConfirmacion` a `Entregado`. |
+| **Inventario insuficiente** | La cantidad pedida supera el stock disponible. | Pedir 999 unidades de una pizza con stock 10. |
 
 ---
 
@@ -45,46 +52,52 @@ En un sistema distribuido, los fallos son **la norma, no la excepción**. Al est
 
 | Fallo | Acción | Implementación en el sistema |
 |-------|--------|------------------------------|
-| **Timeout de conexión** | Cancelar pedido + informar al cliente | Bloque `try/catch` al conectar socket; si expira el timeout, se cambia Estado a `Cancelado` y se responde HTTP 503. |
-| **Conexión rechazada** | Cancelar pedido + reintento limitado | Capturar `SocketException`, registrar log, cancelar pedido. Opcional: reintentar 1 vez antes de cancelar. |
-| **Pérdida de mensaje / socket caído** | Ninguna (el pedido queda en el último estado conocido) | El sistema asume pérdida del mensaje; el administrador debe intervenir. En una versión futura se podría implementar reintento. |
-| **Servicio no disponible** | Degradación graceful | El endpoint POST responde 503 en lugar de 500, indicando que el recurso no está disponible. |
-| **Datos inválidos** | Rechazar petición con 400 Bad Request | Validación de esquema al recibir el POST, antes de cualquier operación de red. |
-| **Duplicación de mensajes** | Idempotencia parcial | Se valida el estado actual del pedido; si ya está en un estado posterior al evento recibido, se ignora. |
+| **Conexión rechazada / API caída** | Informar al usuario sin romper la app | La Consola.Cliente captura `HttpRequestException` y muestra un mensaje claro ("No se pudo conectar a la API"). |
+| **Timeout HTTP** | Establecer límites y cancelar | `HttpClient` con `Timeout` configurado; `CancellationToken` en toda la cadena. |
+| **Caída de MySQL** | Falla controlada con log | El middleware captura `MySqlException` y responde 500 registrando el detalle; no se corrompen datos por transacciones. |
+| **Datos inválidos** | Rechazar con 400 | FluentValidation valida el request antes de tocar la base; `ArgumentException` de reglas de negocio también mapea a 400 con detalle. |
+| **Datos duplicados** | Rechazar con 409 | El middleware traduce el error 1062 de MySQL a 409 Conflict con mensaje descriptivo. |
+| **Recurso inexistente** | Responder 404 | `PedidoNoEncontradoException` y búsquedas sin resultado mapean a 404 Not Found. |
+| **Transición inválida** | Rechazar con 409 sin tocar la base | `TransicionInvalidaException` con `estadoActual` y `estadoSolicitado`. |
+| **Inventario insuficiente** | Rollback total + 400 | El `UPDATE` condicional de stock no afecta filas → se lanza error → `RollbackAsync` revierte pedido e ítems. |
 
 ### 3.2 Mecanismos transversales
 
 | Mecanismo | Propósito | Detalle |
 |-----------|-----------|---------|
-| **Logging estructurado** | Registrar todos los eventos de red y cambios de estado para trazabilidad. | Cada `try/catch` escribe en un log con timestamp, tipo de error y pedidoId. |
-| **Timeouts explícitos** | Evitar que el sistema quede bloqueado esperando una respuesta. | Toda conexión socket tiene un timeout configurable (ej: 5 segundos). |
-| **Máquina de estados** | Garantizar que las transiciones de estado sean predecibles. | El enumerador `EstadoPedido` solo permite transiciones definidas (ej: no se puede pasar de "EsperaConfirmacion" a "Entregado" sin pasar por "EnPreparacion"). |
-| **Estado Cancelado** | Absorber fallos de red como un estado válido del ciclo de vida. | Si la cocina falla, el pedido transiciona a `Cancelado` en lugar de quedar en un estado inconsistente. |
+| **Middleware global de errores** | Traducción uniforme excepción → HTTP | `ExceptionHandlingMiddleware` mapea dominio → 404/409, validación → 400, inesperado → 500 con log. |
+| **Transacciones** | Atomicidad de escrituras | Creación de pedido (stock + pedido + ítems + historial) y cambios de estado se confirman o revierten como unidad. |
+| **Máquina de estados** | Transiciones predecibles | Solo se permite avanzar un estado por vez y en orden; repetir el estado actual es idempotente. |
+| **Stock atómico** | Evitar sobreventa | `UPDATE ... WHERE stock >= @Cantidad` evita condiciones de carrera entre pedidos concurrentes. |
+| **Logging estructurado** | Trazabilidad post-mortem | `ILogger<T>` con niveles y placeholders en servicios y middleware. |
+| **CancellationToken** | Cancelación graceful | Toda operación asíncrona (HTTP y BD) propaga el token del request. |
 
 ---
 
 ## 4. Matriz de Decisión ante Fallos
 
 ```
-¿Se pudo conectar a Cocina?
-├── Sí → Continuar flujo normal
-└── No → ¿Hubo timeout?
-        ├── Sí → Cancelar pedido → 503
-        └── No → ¿Conexión rechazada?
-                ├── Sí → ¿Reintentar?
-                │       ├── Sí (1er intento) → Reintentar conexión
-                │       └── No (2do intento) → Cancelar pedido → 503
-                └── No → Error genérico → 500 Internal Server Error
+¿La API está disponible?
+├── No → Consola muestra "No se pudo conectar a la API" (reintento manual)
+└── Sí → ¿El request pasó la validación?
+        ├── No → 400 Bad Request (FluentValidation / regla de negocio)
+        └── Sí → ¿El recurso existe?
+                ├── No → 404 Not Found
+                └── Sí → ¿Hay conflicto de estado?
+                        ├── Sí → 409 Conflict (duplicado, transición inválida, FK)
+                        └── No → Operación exitosa (200/201)
+                                └── Si algo inesperado falla → 500 + log
 ```
 
 ---
 
 ## 5. Conclusión
 
-El sistema PizzeriaAPI maneja los fallos distribuidos mediante una combinación de:
-- **Timeouts** para evitar bloqueos perpetuos.
-- **Máquina de estados** que incluye `Cancelado` como estado terminal de error.
-- **Respuestas HTTP semánticas** (201, 400, 503) que permiten al cliente reaccionar adecuadamente.
+El sistema PizzeriaAPI maneja los fallos mediante una combinación de:
+- **Respuestas HTTP semánticas** (400, 404, 409, 500) que permiten al cliente reaccionar adecuadamente.
+- **Transacciones y stock atómico** para evitar estados inconsistentes o sobreventa.
+- **Máquina de estados estricta e idempotente** como garantía del ciclo de vida.
+- **Middleware centralizado** para que ningún error escape sin una respuesta estructurada.
 - **Logging** para diagnóstico post-mortem.
 
-Para una versión productiva, se recomendaría agregar **reintentos con backoff**, **circuit breaker** y **colas de mensajes** (RabbitMQ) para garantizar la entrega de eventos.
+Para una versión productiva, se recomendaría agregar **reintentos con backoff** en el cliente HTTP y **rate limiting** en la API.

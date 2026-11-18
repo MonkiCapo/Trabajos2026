@@ -1,23 +1,22 @@
 using System;
-using System.IO;
 using System.Linq;
 using System.Text.Json.Serialization;
+using System.Threading;
 using FluentValidation;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Api.Pizzeria.Data;
-using Api.Pizzeria.Sockets;
+using Api.Pizzeria.Middleware;
+using Api.Pizzeria.Services;
 using Core.Pizzeria.DTOs;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
 using Core.Pizzeria.Servicios.IRepositorios;
 using Dapper.Pizzeria;
-using Api.Pizzeria.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -47,11 +46,6 @@ builder.Services.AddScoped<IPizzaRepositorio, PizzaRepositorio>();
 // Inicializar base de datos usando script.sql
 DbInitializer.Initialize(connectionString);
 
-// Registrar servidor de Sockets como Singleton Hosted Service
-builder.Services.AddSingleton<SocketServer>();
-builder.Services.AddSingleton<ISocketServer>(sp => sp.GetRequiredService<SocketServer>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<SocketServer>());
-
 // Registrar servicios de negocio
 builder.Services.AddScoped<IPedidoService, PedidoService>();
 
@@ -67,6 +61,9 @@ builder.Services.AddSwaggerGen(c =>
 
 var app = builder.Build();
 
+// Manejo centralizado de errores (404/409/400/500 según la excepción)
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 // Habilitar Swagger en modo Desarrollo
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -75,71 +72,166 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+// Mapeos entidad -> DTO de respuesta
+static ClienteResponse ToClienteResponse(Cliente c) => new()
+{
+    Id = c.Id,
+    Nombre = c.Nombre,
+    Email = c.Email,
+    Telefono = c.Telefono,
+    Direccion = c.Direccion
+};
+
+static PizzaResponse ToPizzaResponse(Pizza p) => new()
+{
+    Id = p.Id,
+    Nombre = p.Nombre,
+    Tamanio = p.Tamanio,
+    Precio = p.Precio,
+    Descripcion = p.Descripcion,
+    Stock = p.Stock,
+    Disponible = p.Disponible
+};
+
 // Endpoints
 
 // 1. POST /api/clientes (Registrar cliente)
-app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, IClienteRepositorio clienteRepo, ILogger<Program> logger) =>
+app.MapPost("/api/clientes", async (ClienteRequest clienteRequest, IValidator<ClienteRequest> validator, IClienteRepositorio clienteRepo, ILogger<Program> logger, CancellationToken ct) =>
 {
-    var validation = await validator.ValidateAsync(clienteRequest);
+    var validation = await validator.ValidateAsync(clienteRequest, ct);
     if (!validation.IsValid)
     {
         return Results.ValidationProblem(validation.ToDictionary());
     }
 
-    try
+    var cliente = new Cliente
     {
-        var cliente = new Cliente
-        {
-            Nombre = clienteRequest.Nombre,
-            Email = clienteRequest.Email,
-            Telefono = clienteRequest.Telefono,
-            Direccion = clienteRequest.Direccion
-        };
+        Nombre = clienteRequest.Nombre,
+        Email = clienteRequest.Email,
+        Telefono = clienteRequest.Telefono,
+        Direccion = clienteRequest.Direccion
+    };
 
-        var id = await clienteRepo.AgregarClienteAsync(cliente);
-        cliente.Id = id;
-        logger.LogInformation("[API] Nuevo cliente registrado: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
-        return Results.Created($"/api/clientes/{cliente.Id}", cliente);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "[API] Error al registrar cliente.");
-        return Results.StatusCode(StatusCodes.Status500InternalServerError);
-    }
+    cliente.Id = await clienteRepo.AgregarClienteAsync(cliente, ct);
+    logger.LogInformation("[API] Nuevo cliente registrado: {Nombre} (ID: {Id})", cliente.Nombre, cliente.Id);
+    return Results.Created($"/api/clientes/{cliente.Id}", ToClienteResponse(cliente));
 });
 
 // GET /api/clientes/{id} (Obtener cliente por ID)
-app.MapGet("/api/clientes/{id}", async (int id, IClienteRepositorio clienteRepo) =>
+app.MapGet("/api/clientes/{id}", async (int id, IClienteRepositorio clienteRepo, CancellationToken ct) =>
 {
-    var cliente = await clienteRepo.ObtenerClientePorIdAsync(id);
-    return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
+    var cliente = await clienteRepo.ObtenerClientePorIdAsync(id, ct);
+    return cliente is not null ? Results.Ok(ToClienteResponse(cliente)) : Results.NotFound();
 });
 
 // GET /api/clientes/email/{email} (Obtener cliente por email)
-app.MapGet("/api/clientes/email/{email}", async (string email, IClienteRepositorio clienteRepo) =>
+app.MapGet("/api/clientes/email/{email}", async (string email, IClienteRepositorio clienteRepo, CancellationToken ct) =>
 {
-    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(email);
-    return cliente is not null ? Results.Ok(cliente) : Results.NotFound();
+    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(email, ct);
+    return cliente is not null ? Results.Ok(ToClienteResponse(cliente)) : Results.NotFound();
 });
 
-// 2. GET /api/pizzas (Catálogo de Pizzas)
-app.MapGet("/api/pizzas", async (IPizzaRepositorio pizzaRepo) =>
+// 2. GET /api/pizzas (Catálogo de Pizzas; ?todas=true para ver también las ocultas - admin)
+app.MapGet("/api/pizzas", async (bool? todas, IPizzaRepositorio pizzaRepo, CancellationToken ct) =>
 {
-    var pizzas = await pizzaRepo.ObtenerPizzasAsync();
-    return Results.Ok(pizzas);
+    var pizzas = await pizzaRepo.ObtenerPizzasAsync(soloDisponibles: todas != true, ct);
+    return Results.Ok(pizzas.Select(ToPizzaResponse));
+});
+
+// 2b. POST /api/pizzas (Agregar pizza - Administrador)
+app.MapPost("/api/pizzas", async (PizzaRequest request, IValidator<PizzaRequest> validator, IPizzaRepositorio pizzaRepo, ILogger<Program> logger, CancellationToken ct) =>
+{
+    var validation = await validator.ValidateAsync(request, ct);
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(validation.ToDictionary());
+    }
+
+    if (await pizzaRepo.ExistePizzaConNombreAsync(request.Nombre, ct: ct))
+    {
+        return Results.Conflict(new { error = $"Ya existe una pizza con el nombre '{request.Nombre}'." });
+    }
+
+    var pizza = new Pizza
+    {
+        Nombre = request.Nombre,
+        Tamanio = request.Tamanio,
+        Precio = request.Precio,
+        Descripcion = request.Descripcion,
+        Stock = request.Stock,
+        Disponible = request.Disponible
+    };
+
+    pizza.Id = await pizzaRepo.AgregarPizzaAsync(pizza, ct);
+    logger.LogInformation("[API] Nueva pizza agregada: {Nombre} (ID: {Id})", pizza.Nombre, pizza.Id);
+    return Results.Created($"/api/pizzas/{pizza.Id}", ToPizzaResponse(pizza));
+});
+
+// 2c. PUT /api/pizzas/{id} (Editar pizza - Administrador)
+app.MapPut("/api/pizzas/{id}", async (int id, PizzaRequest request, IValidator<PizzaRequest> validator, IPizzaRepositorio pizzaRepo, ILogger<Program> logger, CancellationToken ct) =>
+{
+    var validation = await validator.ValidateAsync(request, ct);
+    if (!validation.IsValid)
+    {
+        return Results.ValidationProblem(validation.ToDictionary());
+    }
+
+    var pizza = await pizzaRepo.ObtenerPizzaPorIdAsync(id, ct);
+    if (pizza == null)
+    {
+        return Results.NotFound(new { error = $"No se encontró la pizza con ID {id}." });
+    }
+
+    if (await pizzaRepo.ExistePizzaConNombreAsync(request.Nombre, id, ct))
+    {
+        return Results.Conflict(new { error = $"Ya existe otra pizza con el nombre '{request.Nombre}'." });
+    }
+
+    pizza.Nombre = request.Nombre;
+    pizza.Tamanio = request.Tamanio;
+    pizza.Precio = request.Precio;
+    pizza.Descripcion = request.Descripcion;
+    pizza.Stock = request.Stock;
+    pizza.Disponible = request.Disponible;
+
+    await pizzaRepo.ActualizarPizzaAsync(pizza, ct);
+    logger.LogInformation("[API] Pizza {Id} actualizada.", id);
+    return Results.Ok(ToPizzaResponse(pizza));
+});
+
+// 2d. DELETE /api/pizzas/{id} (Eliminar pizza - Administrador)
+app.MapDelete("/api/pizzas/{id}", async (int id, IPizzaRepositorio pizzaRepo, ILogger<Program> logger, CancellationToken ct) =>
+{
+    var pizza = await pizzaRepo.ObtenerPizzaPorIdAsync(id, ct);
+    if (pizza == null)
+    {
+        return Results.NotFound(new { error = $"No se encontró la pizza con ID {id}." });
+    }
+
+    if (await pizzaRepo.TieneItemsAsociadosAsync(id, ct))
+    {
+        return Results.Conflict(new
+        {
+            error = $"La pizza '{pizza.Nombre}' tiene pedidos asociados y no puede eliminarse. Sugerencia: ocultarla del menú con PUT /api/pizzas/{id} estableciendo disponible = false."
+        });
+    }
+
+    await pizzaRepo.EliminarPizzaAsync(id, ct);
+    logger.LogInformation("[API] Pizza {Id} eliminada.", id);
+    return Results.Ok(new { mensaje = $"Pizza '{pizza.Nombre}' eliminada correctamente." });
 });
 
 // 3. POST /api/pedidos (Crear pedido - CU-03)
-app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoService, IClienteRepositorio clienteRepo, IValidator<PedidoRequest> validator, ILogger<Program> logger) =>
+app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoService, IClienteRepositorio clienteRepo, IValidator<PedidoRequest> validator, CancellationToken ct) =>
 {
-    var validation = await validator.ValidateAsync(request);
+    var validation = await validator.ValidateAsync(request, ct);
     if (!validation.IsValid)
     {
         return Results.ValidationProblem(validation.ToDictionary());
     }
 
     // Resolver email a ID de cliente
-    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(request.ClienteEmail);
+    var cliente = await clienteRepo.ObtenerClientePorEmailAsync(request.ClienteEmail, ct);
     if (cliente == null)
     {
         return Results.BadRequest(new { error = $"No se encontro un cliente con el email '{request.ClienteEmail}'." });
@@ -155,74 +247,88 @@ app.MapPost("/api/pedidos", async (PedidoRequest request, IPedidoService pedidoS
         }).ToList()
     };
 
-    try
-    {
-        var createdOrder = await pedidoService.CrearPedidoAsync(order);
+    var createdOrder = await pedidoService.CrearPedidoAsync(order, ct);
 
-        return Results.Created($"/api/pedidos/{createdOrder.Id}", new
-        {
-            pedidoId = createdOrder.Id,
-            estado = createdOrder.Estado,
-            total = createdOrder.Total,
-            fechaCreacion = createdOrder.FechaCreacion
-        });
-    }
-    catch (ArgumentException ex)
+    return Results.Created($"/api/pedidos/{createdOrder.Id}", new
     {
-        return Results.BadRequest(new { error = "Datos invalidos", detalles = ex.Message });
-    }
-    catch (CocinaNoDisponibleException ex)
-    {
-        logger.LogWarning("[API] Pedido {Id} cancelado porque Cocina no está disponible.", ex.PedidoId);
-        return Results.Json(new
-        {
-            error = "Servicio de cocina no disponible en este momento",
-            pedidoId = ex.PedidoId,
-            codigo = "COCINA_NO_DISPONIBLE"
-        }, statusCode: StatusCodes.Status503ServiceUnavailable);
-    }
-    catch (Exception ex)
-    {
-        logger.LogError(ex, "[API] Error inesperado al crear pedido.");
-        return Results.StatusCode(StatusCodes.Status500InternalServerError);
-    }
+        pedidoId = createdOrder.Id,
+        estado = createdOrder.Estado,
+        total = createdOrder.Total,
+        fechaCreacion = createdOrder.FechaCreacion
+    });
 });
 
 // 4. GET /api/pedidos/{id} (Consultar pedido - CU-02)
-app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, IClienteRepositorio clienteRepo, ILogger<Program> logger) =>
+app.MapGet("/api/pedidos/{id}", async (int id, IPedidoService pedidoService, IClienteRepositorio clienteRepo, CancellationToken ct) =>
 {
-    try
+    var order = await pedidoService.GetPedidoByIdAsync(id, ct);
+    if (order == null)
     {
-        var order = await pedidoService.GetPedidoByIdAsync(id);
-        if (order == null)
+        return Results.NotFound();
+    }
+
+    // Obtener información del cliente
+    var cliente = await clienteRepo.ObtenerClientePorIdAsync(order.ClienteId, ct);
+
+    return Results.Ok(new PedidoDetalleResponse
+    {
+        PedidoId = order.Id,
+        Estado = order.Estado,
+        Cliente = cliente is null ? null : new ClienteResumenResponse
         {
-            return Results.NotFound();
+            Id = cliente.Id,
+            Nombre = cliente.Nombre,
+            Email = cliente.Email
+        },
+        Items = order.Items.Select(i => new ItemPedidoResponse
+        {
+            Pizza = i.PizzaNombre,
+            Cantidad = i.Cantidad,
+            PrecioUnitario = i.PrecioUnitario
+        }).ToList(),
+        Total = order.Total,
+        FechaCreacion = order.FechaCreacion,
+        FechaActualizacion = order.FechaActualizacion
+    });
+});
+
+// 5. GET /api/pedidos (Listar pedidos, filtro opcional ?estado=)
+app.MapGet("/api/pedidos", async (string? estado, IPedidoService pedidoService, CancellationToken ct) =>
+{
+    EstadoPedido? filtro = null;
+    if (!string.IsNullOrWhiteSpace(estado))
+    {
+        if (!Enum.TryParse<EstadoPedido>(estado, ignoreCase: true, out var parsed) || !Enum.IsDefined(parsed))
+        {
+            return Results.BadRequest(new { error = $"Estado inválido: '{estado}'. Valores válidos: EsperaConfirmacion, EnPreparacion, EnViaje, Entregado." });
         }
-
-        // Obtener información del cliente
-        var cliente = await clienteRepo.ObtenerClientePorIdAsync(order.ClienteId);
-
-        return Results.Ok(new
-        {
-            pedidoId = order.Id,
-            estado = order.Estado,
-            cliente = cliente != null ? new { id = cliente.Id, nombre = cliente.Nombre, email = cliente.Email } : null,
-            items = order.Items.Select(i => new
-            {
-                pizza = i.PizzaNombre,
-                cantidad = i.Cantidad,
-                precioUnitario = i.PrecioUnitario
-            }),
-            total = order.Total,
-            fechaCreacion = order.FechaCreacion,
-            ultimaActualizacion = order.FechaActualizacion
-        });
+        filtro = parsed;
     }
-    catch (Exception ex)
+
+    var pedidos = await pedidoService.GetPedidosAsync(filtro, ct);
+    return Results.Ok(pedidos.Select(p => new PedidoResumenResponse
     {
-        logger.LogError(ex, "[API] Error al obtener pedido {Id}.", id);
-        return Results.StatusCode(StatusCodes.Status500InternalServerError);
+        PedidoId = p.Id,
+        ClienteId = p.ClienteId,
+        Estado = p.Estado,
+        Total = p.Total,
+        FechaCreacion = p.FechaCreacion,
+        FechaActualizacion = p.FechaActualizacion
+    }));
+});
+
+// 6. PUT /api/pedidos/{id}/estado (Cambiar estado - máquina de estados)
+app.MapPut("/api/pedidos/{id}/estado", async (int id, CambiarEstadoRequest request, IPedidoService pedidoService, CancellationToken ct) =>
+{
+    if (string.IsNullOrWhiteSpace(request.Estado) ||
+        !Enum.TryParse<EstadoPedido>(request.Estado, ignoreCase: true, out var nuevoEstado) ||
+        !Enum.IsDefined(nuevoEstado))
+    {
+        return Results.BadRequest(new { error = $"Estado inválido: '{request.Estado}'. Valores válidos: EsperaConfirmacion, EnPreparacion, EnViaje, Entregado." });
     }
+
+    await pedidoService.CambiarEstadoAsync(id, nuevoEstado, ct);
+    return Results.Ok(new { pedidoId = id, estado = nuevoEstado });
 });
 
 app.Run();

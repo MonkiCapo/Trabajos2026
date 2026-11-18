@@ -8,7 +8,7 @@
 ## 1. Software Necesario
 
 ### 1.1 .NET SDK 10.0
-El proyecto utiliza .NET 10.0 (preview/latest). Verificar la instalación:
+El proyecto utiliza .NET 10.0. Verificar la instalación:
 
 ```bash
 dotnet --version
@@ -33,7 +33,7 @@ mysql -h localhost -P 3306 -u 5to_agbd -p
 | User | 5to_agbd |
 | Password | Trigg3rs! |
 
-> **Nota:** Si usa otras credenciales, modificar la cadena de conexión en `appsettings.json` o en el código fuente de `Program.cs` y `PedidoService.cs`.
+> **Nota:** Si usa otras credenciales, modificar la cadena de conexión en `appsettings.json` (o el fallback en `Program.cs`).
 
 ### 1.3 Editor de Código (Recomendado)
 - Visual Studio 2022 17.x (con workload .NET Desktop)
@@ -52,7 +52,7 @@ Plan3.2/
 │   ├── ErroresAsync.md
 │   ├── ExploracionAPI.md
 │   ├── FallosYAcciones.md
-│   ├── FlujoFuncional.md          # Este documento
+│   ├── FlujoFuncional.md
 │   ├── GuiaDefensa.md
 │   ├── GuiaSwagger.md
 │   ├── IntroduccionDistribuida.md
@@ -61,10 +61,10 @@ Plan3.2/
 └── src/
     ├── PizzeriaApp.slnx           # Archivo de solución
     ├── script.sql                 # Script de base de datos
-    ├── Api.Pizzeria/              # Backend (Minimal API + Socket Server)
-    ├── Consola.Cliente/           # Interfaz del cliente (HTTP)
-    ├── Consola.Cocina/            # Servicio de cocina (TCP Socket)
-    └── Consola.Reparto/           # Servicio de reparto (TCP Socket)
+    ├── Api.Pizzeria/              # Backend (Minimal API, HTTP)
+    ├── Core.Pizzeria/             # Entidades, DTOs e interfaces de dominio
+    ├── Dapper.Pizzeria/           # Implementación de repositorios (Dapper + MySQL)
+    └── Consola.Cliente/           # Interfaz del cliente (HTTP)
 ```
 
 ---
@@ -73,7 +73,7 @@ Plan3.2/
 
 ### Paso 1: Preparar la base de datos
 
-Asegurarse de que MySQL esté ejecutándose. El sistema inicializa la base de datos automáticamente al iniciar la API (usa `script.sql`).
+Asegurarse de que MySQL esté ejecutándose. El sistema inicializa la base de datos automáticamente al iniciar la API (crea la base, tablas y datos semilla de `script.sql`, y aplica migraciones de columnas si la base ya existía).
 
 ```bash
 # Si desea ejecutar manualmente el script:
@@ -88,26 +88,10 @@ dotnet restore
 dotnet build
 ```
 
-### Paso 3: Iniciar los servidores Socket (Cocina y Reparto)
-
-Abrir **tres terminales separadas** y ejecutar en cada una:
+### Paso 3: Iniciar la API Backend
 
 ```bash
-# Terminal 1: Cocina
-cd Plan3.2/src
-dotnet run --project Consola.Cocina
-
-# Terminal 2: Reparto
-cd Plan3.2/src
-dotnet run --project Consola.Reparto
-```
-
-> **Importante:** Cocina y Reparto deben estar ejecutándose **antes** de la API, ya que el servidor socket del backend espera conexiones entrantes.
-
-### Paso 4: Iniciar la API Backend
-
-```bash
-# Terminal 3: API
+# Terminal 1: API
 cd Plan3.2/src
 dotnet run --project Api.Pizzeria
 ```
@@ -115,13 +99,15 @@ dotnet run --project Api.Pizzeria
 La API arranca en: `http://localhost:5183`
 Swagger UI disponible en: `http://localhost:5183/swagger`
 
-### Paso 5: Iniciar la aplicación Cliente
+### Paso 4 (opcional): Iniciar la aplicación Cliente
 
 ```bash
-# Terminal 4: Cliente
+# Terminal 2: Cliente
 cd Plan3.2/src
 dotnet run --project Consola.Cliente
 ```
+
+> **Tip:** El flujo completo se puede probar solo con Swagger: registrar cliente, crear pedido y avanzar los estados con `PUT /api/pedidos/{id}/estado` (ver `GuiaSwagger.md`).
 
 ---
 
@@ -129,13 +115,11 @@ dotnet run --project Consola.Cliente
 
 ```
 1. MySQL (debe estar corriendo)
-2. Consola.Cocina  ← Se conecta al puerto 7000
-3. Consola.Reparto ← Se conecta al puerto 7000
-4. Api.Pizzeria    ← Inicia escuchador socket en puerto 7000 + HTTP en 5183
-5. Consola.Cliente ← Se conecta vía HTTP a la API
+2. Api.Pizzeria    ← Inicializa la base y levanta HTTP en el puerto 5183
+3. Consola.Cliente ← Se conecta vía HTTP a la API (opcional; Swagger alcanza)
 ```
 
-> **Error común:** Si se inicia la API antes que Cocina/Reparto, el primer pedido fallará con error 503 (Cocina no disponible).
+> **Error común:** Si MySQL no está corriendo, la API falla al inicializar la base de datos.
 
 ---
 
@@ -144,19 +128,19 @@ dotnet run --project Consola.Cliente
 | Servicio | Puerto | Protocolo | Uso |
 |----------|--------|-----------|-----|
 | Api.Pizzeria (HTTP) | 5183 | HTTP | Endpoints REST + Swagger |
-| Socket Server | 7000 | TCP | Comunicación con Cocina y Reparto |
+| MySQL | 3306 | MySQL/TCP | Persistencia de datos |
 
 ---
 
 ## 6. Dependencias NuGet del Backend
 
-| Paquete | Versión | Uso |
-|---------|---------|-----|
-| `Microsoft.AspNetCore.OpenApi` | — | Documentación Swagger |
-| `Swashbuckle.AspNetCore` | — | UI de Swagger |
-| `MySqlConnector` | — | Conector MySQL para .NET |
-| `Dapper` | — | ORM ligero para queries SQL |
-| `FluentValidation` | — | Validación de DTOs |
+| Paquete | Uso |
+|---------|-----|
+| `Microsoft.AspNetCore.OpenApi` | Documentación OpenAPI |
+| `Swashbuckle.AspNetCore` | UI de Swagger |
+| `MySqlConnector` | Conector MySQL para .NET |
+| `Dapper` | Micro-ORM para queries SQL |
+| `FluentValidation` (+ `FluentValidation.DependencyInjectionExtensions`) | Validación de DTOs |
 
 ---
 
@@ -166,15 +150,13 @@ dotnet run --project Consola.Cliente
 - Verificar que `Api.Pizzeria` esté corriendo
 - Verificar que el puerto 5183 no esté ocupado
 
-### "Cocina no disponible (503)"
-- Verificar que `Consola.Cocina` esté corriendo
-- Verificar que el puerto 7000 no esté ocupado
-- El socket server del backend debe aceptar conexiones entrantes
-
 ### "Error de conexión a MySQL"
 - Verificar que MySQL esté corriendo en el puerto 3306
-- Verificar credenciales en `Program.cs` o `appsettings.json`
+- Verificar credenciales en `appsettings.json` (o el fallback en `Program.cs`)
 - Verificar que el usuario tenga permisos para crear bases de datos
+
+### "El pedido queda en EsperaConfirmacion"
+- Es el estado inicial por diseño: avanzarlo con `PUT /api/pedidos/{id}/estado` desde Swagger (rol administrador)
 
 ### "script.sql no encontrado"
 - El sistema busca el script en múltiples ubicaciones

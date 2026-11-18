@@ -1,35 +1,30 @@
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using System.Net.Sockets;
 using Core.Pizzeria.Entidades;
 using Core.Pizzeria.Servicios;
 using Core.Pizzeria.Servicios.Enum;
+using Core.Pizzeria.Servicios.Excepciones;
 using Core.Pizzeria.Servicios.IRepositorios;
-using Api.Pizzeria.Sockets;
 
 namespace Api.Pizzeria.Services;
 
-public class CocinaNoDisponibleException : Exception
-{
-    public int PedidoId { get; }
-    public CocinaNoDisponibleException(string message, int pedidoId) : base(message)
-    {
-        PedidoId = pedidoId;
-    }
-}
-
 public class PedidoService : IPedidoService
 {
+    private static readonly Dictionary<EstadoPedido, EstadoPedido> TransicionesValidas = new()
+    {
+        [EstadoPedido.EsperaConfirmacion] = EstadoPedido.EnPreparacion,
+        [EstadoPedido.EnPreparacion] = EstadoPedido.EnViaje,
+        [EstadoPedido.EnViaje] = EstadoPedido.Entregado
+    };
+
     private readonly IClienteRepositorio _clienteRepo;
     private readonly IPedidoRepositorio _pedidoRepo;
     private readonly IPizzaRepositorio _pizzaRepo;
     private readonly IAdo _ado;
-    private readonly ISocketServer _socketServer;
     private readonly ILogger<PedidoService> _logger;
 
     public PedidoService(
@@ -37,48 +32,60 @@ public class PedidoService : IPedidoService
         IPedidoRepositorio pedidoRepo,
         IPizzaRepositorio pizzaRepo,
         IAdo ado,
-        ISocketServer socketServer,
         ILogger<PedidoService> logger)
     {
         _clienteRepo = clienteRepo;
         _pedidoRepo = pedidoRepo;
         _pizzaRepo = pizzaRepo;
         _ado = ado;
-        _socketServer = socketServer;
         _logger = logger;
     }
 
-    public async Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido)
+    public async Task<Pedido> CrearPedidoAsync(Pedido nuevoPedido, CancellationToken ct = default)
     {
         using var conexion = _ado.GetDbConnection();
-        conexion.Open();
-        using var transaction = conexion.BeginTransaction();
+        await conexion.OpenAsync(ct);
+        using var transaction = await conexion.BeginTransactionAsync(ct);
 
         try
         {
             // 1. Verificar que el cliente existe
-            var cliente = await _clienteRepo.ObtenerClientePorIdAsync(nuevoPedido.ClienteId);
+            var cliente = await _clienteRepo.ObtenerClientePorIdAsync(nuevoPedido.ClienteId, ct);
             if (cliente == null)
             {
                 throw new ArgumentException($"El cliente con ID {nuevoPedido.ClienteId} no existe.");
             }
 
-            // 2. Obtener precios de pizzas por nombre y calcular total
+            // 2. Una sola consulta para todas las pizzas del pedido (evita N+1)
+            var nombres = nuevoPedido.Items.Select(i => i.PizzaNombre).Distinct().ToList();
+            var pizzas = (await _pizzaRepo.ObtenerPizzasPorNombresAsync(nombres, ct))
+                .ToDictionary(p => p.Nombre, StringComparer.OrdinalIgnoreCase);
+
             decimal calculatedTotal = 0;
 
             foreach (var item in nuevoPedido.Items)
             {
-                var pizzaInfo = await _pizzaRepo.ObtenerPizzaPorNombreAsync(item.PizzaNombre);
-
-                if (pizzaInfo == null)
+                if (!pizzas.TryGetValue(item.PizzaNombre, out var pizzaInfo))
                 {
                     throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no existe en el catalogo.");
+                }
+
+                if (!pizzaInfo.Disponible)
+                {
+                    throw new ArgumentException($"La pizza \"{item.PizzaNombre}\" no está disponible actualmente.");
                 }
 
                 item.PizzaId = pizzaInfo.Id;
                 item.PizzaNombre = pizzaInfo.Nombre;
                 item.PrecioUnitario = pizzaInfo.Precio;
                 calculatedTotal += pizzaInfo.Precio * item.Cantidad;
+
+                // Descuento atómico de stock dentro de la misma transacción.
+                var descontado = await _pizzaRepo.DescontarStockAsync(pizzaInfo.Id, item.Cantidad, conexion, transaction, ct);
+                if (!descontado)
+                {
+                    throw new ArgumentException($"Stock insuficiente para la pizza \"{item.PizzaNombre}\". Disponible: {pizzaInfo.Stock}, solicitado: {item.Cantidad}.");
+                }
             }
 
             nuevoPedido.Total = calculatedTotal;
@@ -87,111 +94,89 @@ public class PedidoService : IPedidoService
             nuevoPedido.FechaActualizacion = DateTime.UtcNow;
 
             // 3. Insertar PEDIDO
-            var pedidoId = await _pedidoRepo.CrearPedidoAsync(nuevoPedido, conexion, transaction);
+            var pedidoId = await _pedidoRepo.CrearPedidoAsync(nuevoPedido, conexion, transaction, ct);
             nuevoPedido.Id = pedidoId;
 
-            // 4. Insertar ITEMS
-            await _pedidoRepo.CrearItemsPedidoAsync(nuevoPedido.Items, pedidoId, conexion, transaction);
+            // 4. Insertar ITEMS (multi-insert)
+            await _pedidoRepo.CrearItemsPedidoAsync(nuevoPedido.Items, pedidoId, conexion, transaction, ct);
 
             // 5. Insertar HISTORIAL
-            await _pedidoRepo.CrearHistorialAsync(pedidoId, EstadoPedido.EsperaConfirmacion, 
-                "Creación de pedido. Esperando confirmación de cocina.", conexion, transaction);
+            await _pedidoRepo.CrearHistorialAsync(pedidoId, EstadoPedido.EsperaConfirmacion,
+                "Creación de pedido. Esperando confirmación.", conexion, transaction, ct);
 
-            transaction.Commit();
+            await transaction.CommitAsync(ct);
+        }
+        catch (ArgumentException)
+        {
+            await transaction.RollbackAsync(ct);
+            throw;
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
+            await transaction.RollbackAsync(ct);
             _logger.LogError(ex, "[PEDIDOSERVICE] Error al crear pedido en la base de datos.");
             throw;
-        }
-
-        // 6. Interacción socket con Cocina (fuera de la transacción)
-        _logger.LogInformation("[PEDIDOSERVICE] Intentando enviar pedido por socket a Cocina para pedido {Id}...", nuevoPedido.Id);
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-            bool ack = await _socketServer.EnviarPedidoACocinaAsync(nuevoPedido, cts.Token);
-
-            if (ack)
-            {
-                _logger.LogInformation("[PEDIDOSERVICE] Cocina confirmó recepción del pedido {Id}. Cambiando estado a EnPreparacion.", nuevoPedido.Id);
-                await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.EnPreparacion, "Cocina confirmó recepción (ACK)");
-                nuevoPedido.Estado = EstadoPedido.EnPreparacion;
-                nuevoPedido.FechaActualizacion = DateTime.UtcNow;
-            }
-            else
-            {
-                _logger.LogWarning("[PEDIDOSERVICE] ACK de Cocina fallido (timeout o error) para pedido {Id}. Cancelando pedido.", nuevoPedido.Id);
-                await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.Cancelado, "Fallo de comunicación con cocina (ACK no recibido)");
-                throw new CocinaNoDisponibleException("La cocina no confirmó la recepción del pedido a tiempo.", nuevoPedido.Id);
-            }
-        }
-        catch (Exception ex) when (ex is SocketException || ex is CocinaNoDisponibleException || ex is OperationCanceledException)
-        {
-            _logger.LogError(ex, "[PEDIDOSERVICE] Cocina no disponible. Falló la conexión para pedido {Id}. Cancelando pedido.", nuevoPedido.Id);
-            await ActualizarEstadoAsync(nuevoPedido.Id, EstadoPedido.Cancelado, $"Fallo de red: {ex.Message}");
-            throw new CocinaNoDisponibleException("Servicio de cocina no disponible en este momento.", nuevoPedido.Id);
         }
 
         return nuevoPedido;
     }
 
-    public async Task ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, string observacion)
+    public async Task CambiarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, CancellationToken ct = default)
+    {
+        var estadoActual = await _pedidoRepo.ObtenerEstadoActualAsync(pedidoId, ct);
+        if (estadoActual is null)
+        {
+            throw new PedidoNoEncontradoException(pedidoId);
+        }
+
+        // Idempotencia: pedir el estado en el que ya está no genera cambios ni historial.
+        if (estadoActual == nuevoEstado)
+        {
+            _logger.LogInformation("[PEDIDOSERVICE] Pedido {Id} ya está en {Estado}. Sin cambios.", pedidoId, nuevoEstado);
+            return;
+        }
+
+        if (!TransicionesValidas.TryGetValue(estadoActual.Value, out var estadoEsperado) || estadoEsperado != nuevoEstado)
+        {
+            throw new TransicionInvalidaException(estadoActual.Value, nuevoEstado);
+        }
+
+        await ActualizarEstadoAsync(pedidoId, nuevoEstado, $"Cambio de estado de {estadoActual} a {nuevoEstado}.", ct);
+    }
+
+    public async Task ActualizarEstadoAsync(int pedidoId, EstadoPedido nuevoEstado, string observacion, CancellationToken ct = default)
     {
         using var conexion = _ado.GetDbConnection();
-        conexion.Open();
-        using var transaction = conexion.BeginTransaction();
+        await conexion.OpenAsync(ct);
+        using var transaction = await conexion.BeginTransactionAsync(ct);
 
         try
         {
             _logger.LogInformation("[PEDIDOSERVICE] Transicionando pedido {Id} a {Estado} - {Obs}", pedidoId, nuevoEstado, observacion);
 
             // Actualizar pedido
-            await _pedidoRepo.ActualizarEstadoAsync(pedidoId, nuevoEstado, conexion, transaction);
+            await _pedidoRepo.ActualizarEstadoAsync(pedidoId, nuevoEstado, conexion, transaction, ct);
 
             // Insertar historial
-            await _pedidoRepo.CrearHistorialAsync(pedidoId, nuevoEstado, observacion, conexion, transaction);
+            await _pedidoRepo.CrearHistorialAsync(pedidoId, nuevoEstado, observacion, conexion, transaction, ct);
 
-            transaction.Commit();
+            await transaction.CommitAsync(ct);
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
-            _logger.LogError(ex, "[PEDIDOSERVICE] Error al actualizar estado del pedido en la base de datos para pedido {Id}.", pedidoId);
+            await transaction.RollbackAsync(ct);
+            _logger.LogError(ex, "[PEDIDOSERVICE] Error al actualizar estado del pedido {Id}.", pedidoId);
             throw;
-        }
-
-        // Si el nuevo estado es EnViaje, activar envío a Reparto
-        if (nuevoEstado == EstadoPedido.EnViaje)
-        {
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    var pedido = await _pedidoRepo.ObtenerPedidoPorIdAsync(pedidoId);
-                    if (pedido != null)
-                    {
-                        var cliente = await _clienteRepo.ObtenerClientePorIdAsync(pedido.ClienteId);
-                        
-                        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                        bool assigned = await _socketServer.EnviarPedidoARepartoAsync(pedido, cliente?.Direccion ?? "Sin dirección", cts.Token);
-                        if (!assigned)
-                        {
-                            _logger.LogWarning("[PEDIDOSERVICE] Reparto no disponible o timeout para la asignación del pedido {Id}.", pedidoId);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "[PEDIDOSERVICE] Falló el envío de asignación a Reparto para pedido {Id}.", pedidoId);
-                }
-            });
         }
     }
 
-    public async Task<Pedido?> GetPedidoByIdAsync(int id)
+    public async Task<Pedido?> GetPedidoByIdAsync(int id, CancellationToken ct = default)
     {
-        return await _pedidoRepo.ObtenerPedidoPorIdAsync(id);
+        return await _pedidoRepo.ObtenerPedidoPorIdAsync(id, ct);
+    }
+
+    public async Task<IEnumerable<Pedido>> GetPedidosAsync(EstadoPedido? estado = null, CancellationToken ct = default)
+    {
+        return await _pedidoRepo.ObtenerPedidosAsync(estado, ct);
     }
 }
