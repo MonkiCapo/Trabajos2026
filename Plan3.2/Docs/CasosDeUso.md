@@ -20,20 +20,23 @@ graph TB
         UC3["UC-03 Visualizar Cliente por email"]
         UC4["UC-04 Consultar Pedido"]
         UC5["UC-05 Realizar Pedido"]
-        UC6["UC-06 Agregar Pizza"]
-        UC7["UC-07 Editar Pizza"]
-        UC8["UC-08 Quitar Pizza"]
-        UC9["UC-09 Cambiar Pedido"]
+        UC6["UC-09 Cambiar Pedido"]
+        UC7["UC-06 Agregar Pizza"]
+        UC8["UC-07 Editar Pizza"]
+        UC9["UC-08 Quitar Pizza"]
+        
         UC10["UC-10 Cambiar Estado de Pedido"]
     end
 
     CLI --> UC1
     CLI --> UC2
     CLI --> UC3
-    ADM --> UC4
-    ADM --> UC5
-    ADM --> UC6
+    CLI --> UC4
+    CLI --> UC5
+    CLI --> UC6
     ADM --> UC7
+    ADM --> UC8
+    ADM --> UC9
 ```
 
 ---
